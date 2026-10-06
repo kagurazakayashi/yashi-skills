@@ -1,0 +1,367 @@
+{
+  "_note": "每个 skill 的提示词示例，键名必须与 ~/.agents/skills 下的目录名完全一致。下划线开头的键是文档，会被加载器忽略。示例语言为简体中文；本文件由人维护，不由脚本生成。",
+  "_why": "HTML 索引里每个 skill 卡片下方会渲染这些示例，点击可复制。示例文本也会并入卡片与侧栏的搜索索引。",
+
+  "banner-design": [
+    "给我们的新品发布会设计一张公众号头图横幅",
+    "做一套 6 种风格的 LinkedIn 广告横幅，我挑一个"
+  ],
+  "brand": [
+    "给这个新品牌定一套语气规范和视觉识别要点",
+    "检查这份营销文案是否符合我们的品牌语气"
+  ],
+  "dart-add-unit-test": [
+    "给 lib/utils.dart 里的 parseConfig 补单元测试",
+    "这个 bug 刚修好，帮我加一个回归测试"
+  ],
+  "dart-build-cli-app": [
+    "帮我搭一个 Dart CLI 脚手架，要支持子命令和退出码",
+    "这个命令行工具的 stdout 和 stderr 分流不对，帮我改"
+  ],
+  "dart-collect-coverage": [
+    "跑一遍测试并生成 LCOV 覆盖率报告",
+    "报告里这几个文件覆盖率是 0，帮我查原因"
+  ],
+  "dart-fix-runtime-errors": [
+    "运行时报错了，抓一下堆栈并定位到出问题那一行",
+    "这个异常改完帮我 hot reload 验证一下"
+  ],
+  "dart-generate-test-mocks": [
+    "用 mockito 给这个 Repository 接口生成 mock",
+    "这几个外部依赖要 mock 掉，帮我配 build_runner 生成代码"
+  ],
+  "dart-migrate-to-checks-package": [
+    "把测试里的 expect 全部换成 package:checks 的写法",
+    "按官方对照表把这个测试文件迁移到 checks"
+  ],
+  "dart-resolve-package-conflicts": [
+    "pub get 报版本冲突了，帮我解一下",
+    "这两个包互相要求不同版本的 meta，怎么处理"
+  ],
+  "dart-run-static-analysis": [
+    "跑一遍 dart analyze，把机械性的 lint 自动修掉",
+    "只报告不修改，先给我看有哪些问题"
+  ],
+  "dart-setup-ffi-assets": [
+    "把这个 C 源码编成 native assets 给 Dart 用",
+    "帮我配一下 hook/build.dart 和 hook/link.dart"
+  ],
+  "dart-use-doc-examples": [
+    "用 {@example} 把 examples 目录里的代码注入到文档",
+    "这段示例只想展示一部分，用 region 标记裁一下"
+  ],
+  "dart-use-ffigen": [
+    "用 ffigen 给这个头文件生成 Dart 绑定",
+    "不要手写 FFI，配 ffigen 自动生成"
+  ],
+  "dart-use-path-package": [
+    "把路径拼接从字符串加法改成 package:path",
+    "这段取扩展名的代码跨平台有问题，帮我修"
+  ],
+  "dart-use-pattern-matching": [
+    "把这段 if-else 链改写成 Dart 3 的 switch 表达式",
+    "用 sealed class 加模式匹配重做这个状态处理"
+  ],
+  "dart-use-primary-constructors": [
+    "把这个类改写成 Dart 新的主构造函数语法",
+    "检查这批构造函数写法是否规范"
+  ],
+  "dart-write-documentation": [
+    "给这个库的公开 API 补 /// 文档注释",
+    "按 Effective Dart 的规范审一遍我的 doc comment"
+  ],
+  "design": [
+    "给这个产品做一套完整的品牌识别方案",
+    "生成一个极简风格的 logo，再来几张应用场景 mockup"
+  ],
+  "design-system": [
+    "帮我设计一套三层 token：primitive / semantic / component",
+    "把现有页面的颜色和间距整理成 design token"
+  ],
+  "flutter-add-integration-test": [
+    "把刚才在 MCP 里点的那套流程固化成集成测试",
+    "给登录到下单这条链路加一个 integration_test"
+  ],
+  "flutter-add-widget-preview": [
+    "给这个组件加上预览注解，方便交互式看效果",
+    "用 previews.dart 给卡片组件做几种状态的预览"
+  ],
+  "flutter-add-widget-test": [
+    "给这个登录表单写 widget 测试，覆盖输入和点击",
+    "测一下这个列表滚动到底能不能加载更多"
+  ],
+  "flutter-apply-architecture-best-practices": [
+    "把这个项目按 UI / Logic / Data 分层重构",
+    "新页面按推荐架构搭，帮我定目录结构"
+  ],
+  "flutter-build-responsive-layout": [
+    "这个页面在平板上会溢出，帮我改成响应式布局",
+    "用 LayoutBuilder 让布局同时适配手机和桌面"
+  ],
+  "flutter-fix-layout-issues": [
+    "报 RenderFlex overflowed 了，帮我定位并修掉",
+    "这个 Column 报无界高度，应该怎么改"
+  ],
+  "flutter-implement-json-serialization": [
+    "给这个数据模型写 fromJson 和 toJson",
+    "帮我解析这个接口返回的嵌套 JSON"
+  ],
+  "flutter-setup-declarative-routing": [
+    "用 go_router 把路由改成声明式的",
+    "加一个深链接，能直接跳到商品详情页"
+  ],
+  "flutter-setup-localization": [
+    "给这个应用加上中英双语本地化",
+    "配好 l10n.yaml 和 flutter_localizations"
+  ],
+  "flutter-use-http-package": [
+    "用 http 包调这个接口，并把结果解析成模型",
+    "这个 POST 请求要带 header 和超时处理，帮我写"
+  ],
+  "golang-benchmark": [
+    "给这个热点函数写 benchmark，对比优化前后",
+    "用 pprof 分析一下 CPU 热点在哪"
+  ],
+  "golang-cli": [
+    "用 cobra 搭一个带子命令的 Go CLI",
+    "这个 CLI 的退出码和信号处理不规范，帮我改"
+  ],
+  "golang-code-style": [
+    "按 Go 惯例审一遍这个文件的代码风格",
+    "这个函数太长了，帮我看看怎么拆得清楚些"
+  ],
+  "golang-concurrency": [
+    "这段并发代码有 goroutine 泄漏，帮我查出来",
+    "这个共享 map 是该加锁还是换 sync.Map"
+  ],
+  "golang-context": [
+    "把 ctx 正确地传进这几层调用",
+    "这个后台任务不该被请求取消，用 WithoutCancel 改一下"
+  ],
+  "golang-continuous-integration": [
+    "给这个 Go 项目配一套 GitHub Actions：测试、lint、覆盖率",
+    "再加上 Dependabot 和 govulncheck 扫描"
+  ],
+  "golang-data-structures": [
+    "这个 slice 反复 append 有性能问题，帮我优化",
+    "这里该用 map 还是 slice，给个判断依据"
+  ],
+  "golang-database": [
+    "这个查询是字符串拼接的，改成参数化查询",
+    "把这段逻辑包进事务并加上 SELECT FOR UPDATE"
+  ],
+  "golang-dependency-injection": [
+    "这个服务的依赖是硬编码的，改成构造函数注入",
+    "wire 和 fx 我该选哪个"
+  ],
+  "golang-dependency-management": [
+    "升级这个依赖到最新版，并检查有没有 CVE",
+    "go.mod 里这两个版本冲突，帮我理一下"
+  ],
+  "golang-design-patterns": [
+    "这个构造函数参数太多，改成 functional options",
+    "用一个显式的枚举类型替换掉这些字符串常量"
+  ],
+  "golang-documentation": [
+    "给这个包补 godoc 和 Example 测试",
+    "帮我写一份 README 和 CHANGELOG"
+  ],
+  "golang-error-handling": [
+    "这个错误被吞掉了，改成用 %w 包装并向上返回",
+    "定义几个哨兵错误，并用 errors.Is 判断"
+  ],
+  "golang-google-wire": [
+    "用 wire 给这个依赖图生成注入代码",
+    "wire.Bind 把接口绑到实现上报错了，帮我看看"
+  ],
+  "golang-gopls": [
+    "用 gopls 找出这个函数的全部引用",
+    "安全地把这个类型重命名一下"
+  ],
+  "golang-graphql": [
+    "用 gqlgen 给这个 schema 生成 resolvers",
+    "加一个 subscription 支持实时推送"
+  ],
+  "golang-grpc": [
+    "把这个 proto 里的服务实现成 gRPC server",
+    "给这个客户端加上超时和重试拦截器"
+  ],
+  "golang-how-to": [
+    "我要重构一段 Go 代码，先看下该遵循哪些规范",
+    "帮我审一下这段 Go，涉及并发和错误处理"
+  ],
+  "golang-lint": [
+    "配一套 .golangci.yml 并跑一遍",
+    "这条 lint 警告该修还是该加 nolint"
+  ],
+  "golang-modernize": [
+    "把这个项目升级到新 Go 版本，并换成新写法",
+    "用内置的 min/max 替换这段手写比较"
+  ],
+  "golang-naming": [
+    "这几个包名和接口名不太符合 Go 惯例，帮我改",
+    "这个 getter 该叫 Name 还是 GetName"
+  ],
+  "golang-observability": [
+    "给这个服务加上 slog 结构化日志和 Prometheus 指标",
+    "接一下 OpenTelemetry 链路追踪"
+  ],
+  "golang-performance": [
+    "pprof 显示这里内存分配太多，怎么优化",
+    "这个热点路径适合上 sync.Pool 吗"
+  ],
+  "golang-pkg-go-dev": [
+    "查一下 github.com/samber/lo 有哪些版本",
+    "这个包有没有已知 CVE，谁在引用它"
+  ],
+  "golang-popular-libraries": [
+    "Go 做 HTTP 服务该选哪个框架，给个对比",
+    "选一个维护活跃的 Go 日志库"
+  ],
+  "golang-project-layout": [
+    "这个 Go 项目目录太乱了，帮我按惯例重排",
+    "多模块项目用 go.work 怎么组织"
+  ],
+  "golang-refactoring": [
+    "先补测试再重构这个大函数，保证行为不变",
+    "用 gopls rename 做一次全仓库重命名"
+  ],
+  "golang-safety": [
+    "这段代码有 nil map 写入的风险，帮我查一遍",
+    "这个 int64 转 int32 会静默截断，帮我修"
+  ],
+  "golang-security": [
+    "审一下这段代码有没有 SQL 注入和路径穿越",
+    "跑一遍 gosec，再补一个 fuzz 测试"
+  ],
+  "golang-spf13-cobra": [
+    "用 cobra 写一个带参数校验和 shell 补全的命令",
+    "这两个命令想共用一段 PreRun，怎么组织"
+  ],
+  "golang-spf13-viper": [
+    "用 viper 做 flag、环境变量、文件、默认值的分层配置",
+    "加上配置文件热重载"
+  ],
+  "golang-stay-updated": [
+    "Go 生态有哪些值得订阅的资讯源",
+    "推荐几个 Go 的博客、播客和会议"
+  ],
+  "golang-stretchr-testify": [
+    "用 testify 的 suite 重写这组测试",
+    "给这个 mock 加上参数匹配和调用次数断言"
+  ],
+  "golang-structs-interfaces": [
+    "这几个接口太胖了，按职责拆开",
+    "这里该用嵌入还是显式字段"
+  ],
+  "golang-swagger": [
+    "给这些 handler 加 swaggo 注释并生成 API 文档",
+    "把 Bearer 鉴权写进 swagger 的 securityDefinitions"
+  ],
+  "golang-testing": [
+    "给这个包写表驱动测试，并加上并行执行",
+    "用 goleak 检查测试有没有泄漏 goroutine"
+  ],
+  "golang-troubleshooting": [
+    "这个 Go 程序偶发死锁，帮我系统地排查",
+    "线上 panic 了，从堆栈开始定位根因"
+  ],
+  "golang-uber-dig": [
+    "用 dig 把这个依赖图接起来",
+    "dig.In 和命名值该怎么用"
+  ],
+  "golang-uber-fx": [
+    "用 fx 组织这个应用，并加上生命周期钩子",
+    "用 fx.Annotate 把结果按组注入"
+  ],
+  "mindmap": [
+    "把这份笔记生成一个可交互的思维导图",
+    "把这个网页的内容整理成思维导图"
+  ],
+  "mindmap-zh": [
+    "把这篇文档做成中文思维导图",
+    "给我一个主题，生成一张中文脑图"
+  ],
+  "qoder-flash-subagent": [
+    "把这个只读分析任务交给 Qwen3.8-Flash 跑",
+    "用 qoder 子代理批量整理这批文件"
+  ],
+  "slides": [
+    "做一套带图表的项目汇报 HTML 幻灯片",
+    "给这份方案生成 12 页的演示稿"
+  ],
+  "ui-styling": [
+    "用 shadcn/ui 做一个带深色模式的表单页",
+    "把这套设计 token 接到 Tailwind 上"
+  ],
+  "ui-ux-pro-max": [
+    "给这个后台管理界面做一套配色和字体方案",
+    "审一下这个页面的可用性问题并给改进建议"
+  ],
+  "yashi-build-skills-index": [
+    "重建一下全局 skill 索引",
+    "新增了几个 skill，更新 SKILLS.md 和 SKILLS.html"
+  ],
+  "yashi-dida-cli": [
+    "列出我的滴答清单和今天的任务",
+    "新建一个滴答任务并打上标签"
+  ],
+  "yashi-dsh-config-sync": [
+    "把我的 dsh 配置导出一份备份",
+    "换机器了，把 dsh 配置导进去",
+    "把 web 的插件和配置同步到桌面版"
+  ],
+  "yashi-dsh-desktop-migrate": [
+    "把 dsh web 的插件和配置都导入到桌面版",
+    "桌面版怎么没有宠物和皮肤这些插件"
+  ],
+  "yashi-dsh-env-sync": [
+    "导出我 dsh 的所有环境变量",
+    "检查一下 dsh 的 API key 有没有配齐"
+  ],
+  "yashi-dsh-update": [
+    "把 dsh 和所有插件更新到最新",
+    "dsh 更新后起不来了，帮我排查"
+  ],
+  "yashi-encoding-convert": [
+    "这个文件是 GBK 的，读出来乱码，帮我转成 UTF-8",
+    "把这段文本以 GBK 保存"
+  ],
+  "yashi-github-read-contributions": [
+    "看一下某个 GitHub 用户的贡献热力图",
+    "算一下他连续贡献了多少天"
+  ],
+  "yashi-global-skills-sync": [
+    "同步一下我全局的 skill",
+    "检查和更新 dart、flutter、golang 这些 skill"
+  ],
+  "yashi-mcp-proxy-injection": [
+    "这个 MCP 服务器联网失败，帮我注入代理",
+    "chromium 连不上 Google，给 MCP 配个代理"
+  ],
+  "yashi-md-table-format": [
+    "把这份 Markdown 的表格对齐一下",
+    "表格列宽不齐，整理成工整的"
+  ],
+  "yashi-node-tls-trust-fix": [
+    "模型老是重试，查一下是不是证书被换了",
+    "fetch failed，怀疑杀毒软件拦截了 HTTPS",
+    "把卡巴斯基的根证书加进 Node 的信任列表"
+  ],
+  "yashi-opencc-convert": [
+    "把这份文档转成繁体中文",
+    "这段繁体转成简体"
+  ],
+  "yashi-opencode-config-portability": [
+    "导出我的 opencode 全部设置",
+    "把 opencode 配置迁移到新机器"
+  ],
+  "yashi-rtk-token-saver": [
+    "跑一下测试，用 rtk 压缩输出",
+    "看下 git 状态和最近的提交"
+  ],
+  "yashi-windows-check-update": [
+    "查一下 Windows 11 最新的功能更新",
+    "有没有新的累积更新 KB 和下载链接"
+  ]
+}
