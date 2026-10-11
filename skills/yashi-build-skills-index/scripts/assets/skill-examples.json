@@ -2,14 +2,6 @@
   "_note": "每个 skill 的提示词示例，键名必须与 ~/.agents/skills 下的目录名完全一致。下划线开头的键是文档，会被加载器忽略。示例语言为简体中文；本文件由人维护，不由脚本生成。",
   "_why": "HTML 索引里每个 skill 卡片下方会渲染这些示例，点击可复制。示例文本也会并入卡片与侧栏的搜索索引。",
 
-  "banner-design": [
-    "给我们的新品发布会设计一张公众号头图横幅",
-    "做一套 6 种风格的 LinkedIn 广告横幅，我挑一个"
-  ],
-  "brand": [
-    "给这个新品牌定一套语气规范和视觉识别要点",
-    "检查这份营销文案是否符合我们的品牌语气"
-  ],
   "dart-add-unit-test": [
     "给 lib/utils.dart 里的 parseConfig 补单元测试",
     "这个 bug 刚修好，帮我加一个回归测试"
@@ -70,14 +62,6 @@
     "给这个库的公开 API 补 /// 文档注释",
     "按 Effective Dart 的规范审一遍我的 doc comment"
   ],
-  "design": [
-    "给这个产品做一套完整的品牌识别方案",
-    "生成一个极简风格的 logo，再来几张应用场景 mockup"
-  ],
-  "design-system": [
-    "帮我设计一套三层 token：primitive / semantic / component",
-    "把现有页面的颜色和间距整理成 design token"
-  ],
   "flutter-add-integration-test": [
     "把刚才在 MCP 里点的那套流程固化成集成测试",
     "给登录到下单这条链路加一个 integration_test"
@@ -118,14 +102,6 @@
     "用 http 包调这个接口，并把结果解析成模型",
     "这个 POST 请求要带 header 和超时处理，帮我写"
   ],
-  "golang-benchmark": [
-    "给这个热点函数写 benchmark，对比优化前后",
-    "用 pprof 分析一下 CPU 热点在哪"
-  ],
-  "golang-cli": [
-    "用 cobra 搭一个带子命令的 Go CLI",
-    "这个 CLI 的退出码和信号处理不规范，帮我改"
-  ],
   "golang-code-style": [
     "按 Go 惯例审一遍这个文件的代码风格",
     "这个函数太长了，帮我看看怎么拆得清楚些"
@@ -138,85 +114,21 @@
     "把 ctx 正确地传进这几层调用",
     "这个后台任务不该被请求取消，用 WithoutCancel 改一下"
   ],
-  "golang-continuous-integration": [
-    "给这个 Go 项目配一套 GitHub Actions：测试、lint、覆盖率",
-    "再加上 Dependabot 和 govulncheck 扫描"
-  ],
-  "golang-data-structures": [
-    "这个 slice 反复 append 有性能问题，帮我优化",
-    "这里该用 map 还是 slice，给个判断依据"
-  ],
-  "golang-database": [
-    "这个查询是字符串拼接的，改成参数化查询",
-    "把这段逻辑包进事务并加上 SELECT FOR UPDATE"
-  ],
-  "golang-dependency-injection": [
-    "这个服务的依赖是硬编码的，改成构造函数注入",
-    "wire 和 fx 我该选哪个"
-  ],
-  "golang-dependency-management": [
-    "升级这个依赖到最新版，并检查有没有 CVE",
-    "go.mod 里这两个版本冲突，帮我理一下"
-  ],
-  "golang-design-patterns": [
-    "这个构造函数参数太多，改成 functional options",
-    "用一个显式的枚举类型替换掉这些字符串常量"
-  ],
-  "golang-documentation": [
-    "给这个包补 godoc 和 Example 测试",
-    "帮我写一份 README 和 CHANGELOG"
-  ],
   "golang-error-handling": [
     "这个错误被吞掉了，改成用 %w 包装并向上返回",
     "定义几个哨兵错误，并用 errors.Is 判断"
-  ],
-  "golang-google-wire": [
-    "用 wire 给这个依赖图生成注入代码",
-    "wire.Bind 把接口绑到实现上报错了，帮我看看"
-  ],
-  "golang-gopls": [
-    "用 gopls 找出这个函数的全部引用",
-    "安全地把这个类型重命名一下"
-  ],
-  "golang-graphql": [
-    "用 gqlgen 给这个 schema 生成 resolvers",
-    "加一个 subscription 支持实时推送"
-  ],
-  "golang-grpc": [
-    "把这个 proto 里的服务实现成 gRPC server",
-    "给这个客户端加上超时和重试拦截器"
-  ],
-  "golang-how-to": [
-    "我要重构一段 Go 代码，先看下该遵循哪些规范",
-    "帮我审一下这段 Go，涉及并发和错误处理"
   ],
   "golang-lint": [
     "配一套 .golangci.yml 并跑一遍",
     "这条 lint 警告该修还是该加 nolint"
   ],
-  "golang-modernize": [
-    "把这个项目升级到新 Go 版本，并换成新写法",
-    "用内置的 min/max 替换这段手写比较"
-  ],
   "golang-naming": [
     "这几个包名和接口名不太符合 Go 惯例，帮我改",
     "这个 getter 该叫 Name 还是 GetName"
   ],
-  "golang-observability": [
-    "给这个服务加上 slog 结构化日志和 Prometheus 指标",
-    "接一下 OpenTelemetry 链路追踪"
-  ],
   "golang-performance": [
     "pprof 显示这里内存分配太多，怎么优化",
     "这个热点路径适合上 sync.Pool 吗"
-  ],
-  "golang-pkg-go-dev": [
-    "查一下 github.com/samber/lo 有哪些版本",
-    "这个包有没有已知 CVE，谁在引用它"
-  ],
-  "golang-popular-libraries": [
-    "Go 做 HTTP 服务该选哪个框架，给个对比",
-    "选一个维护活跃的 Go 日志库"
   ],
   "golang-project-layout": [
     "这个 Go 项目目录太乱了，帮我按惯例重排",
@@ -234,45 +146,9 @@
     "审一下这段代码有没有 SQL 注入和路径穿越",
     "跑一遍 gosec，再补一个 fuzz 测试"
   ],
-  "golang-spf13-cobra": [
-    "用 cobra 写一个带参数校验和 shell 补全的命令",
-    "这两个命令想共用一段 PreRun，怎么组织"
-  ],
-  "golang-spf13-viper": [
-    "用 viper 做 flag、环境变量、文件、默认值的分层配置",
-    "加上配置文件热重载"
-  ],
-  "golang-stay-updated": [
-    "Go 生态有哪些值得订阅的资讯源",
-    "推荐几个 Go 的博客、播客和会议"
-  ],
-  "golang-stretchr-testify": [
-    "用 testify 的 suite 重写这组测试",
-    "给这个 mock 加上参数匹配和调用次数断言"
-  ],
-  "golang-structs-interfaces": [
-    "这几个接口太胖了，按职责拆开",
-    "这里该用嵌入还是显式字段"
-  ],
-  "golang-swagger": [
-    "给这些 handler 加 swaggo 注释并生成 API 文档",
-    "把 Bearer 鉴权写进 swagger 的 securityDefinitions"
-  ],
   "golang-testing": [
     "给这个包写表驱动测试，并加上并行执行",
     "用 goleak 检查测试有没有泄漏 goroutine"
-  ],
-  "golang-troubleshooting": [
-    "这个 Go 程序偶发死锁，帮我系统地排查",
-    "线上 panic 了，从堆栈开始定位根因"
-  ],
-  "golang-uber-dig": [
-    "用 dig 把这个依赖图接起来",
-    "dig.In 和命名值该怎么用"
-  ],
-  "golang-uber-fx": [
-    "用 fx 组织这个应用，并加上生命周期钩子",
-    "用 fx.Annotate 把结果按组注入"
   ],
   "mindmap": [
     "把这份笔记生成一个可交互的思维导图",
@@ -281,18 +157,6 @@
   "mindmap-zh": [
     "把这篇文档做成中文思维导图",
     "给我一个主题，生成一张中文脑图"
-  ],
-  "qoder-flash-subagent": [
-    "把这个只读分析任务交给 Qwen3.8-Flash 跑",
-    "用 qoder 子代理批量整理这批文件"
-  ],
-  "slides": [
-    "做一套带图表的项目汇报 HTML 幻灯片",
-    "给这份方案生成 12 页的演示稿"
-  ],
-  "ui-styling": [
-    "用 shadcn/ui 做一个带深色模式的表单页",
-    "把这套设计 token 接到 Tailwind 上"
   ],
   "ui-ux-pro-max": [
     "给这个后台管理界面做一套配色和字体方案",
@@ -326,6 +190,10 @@
   "yashi-encoding-convert": [
     "这个文件是 GBK 的，读出来乱码，帮我转成 UTF-8",
     "把这段文本以 GBK 保存"
+  ],
+  "yashi-flutter-android-device-debug": [
+    "在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree",
+    "真机启动调试并截图，我点一下按钮看能不能拿到日志输出"
   ],
   "yashi-github-read-contributions": [
     "看一下某个 GitHub 用户的贡献热力图",

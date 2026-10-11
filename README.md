@@ -1,10 +1,10 @@
-# 可用 Skill 索引 · yashi-skills
+# 可用 Skill 索引 · .agents
 
-共 16 个 skill
+共 17 个 skill
 
 ## 目录
 
-**个人工具**（16 个）
+**个人工具**（17 个）
 
 - [yashi-build-skills-index](#yashi-build-skills-index)
 - [yashi-dida-cli](#yashi-dida-cli)
@@ -22,10 +22,11 @@
 - [yashi-opencode-config-portability](#yashi-opencode-config-portability)
 - [yashi-rtk-token-saver](#yashi-rtk-token-saver)
 - [yashi-windows-check-update](#yashi-windows-check-update)
+- [yashi-flutter-android-device-debug](#yashi-flutter-android-device-debug)
 
 ---
 
-**个人工具**（16 个）
+**个人工具**（17 个）
 
 ## yashi-build-skills-index
 
@@ -377,4 +378,26 @@ fetch failed，怀疑杀毒软件拦截了 HTTPS
 ```text
 查一下 Windows 11 最新的功能更新
 有没有新的累积更新 KB 和下载链接
+```
+
+## yashi-flutter-android-device-debug
+
+用途:
+Flutter 的 Android 真机调试工作流：建立稳定的 flutter run 调试会话，并获取 Widget Tree、应用日志输出与设备截图。
+
+适用场景:
+
+- 在 Android 真机上启动 Flutter 调试
+- 查看运行中应用的 Widget Tree
+- 抓取真机上的应用日志 / debugPrint 输出
+- 真机截图，以及“先操作再观测”的闭环验证
+
+位置:
+`skills/yashi-flutter-android-device-debug/` · [打开目录](skills/yashi-flutter-android-device-debug/)
+
+提示词示例:
+
+```text
+在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree
+真机启动调试并截图，我点一下按钮看能不能拿到日志输出
 ```
