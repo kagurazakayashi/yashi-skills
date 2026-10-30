@@ -1,0 +1,1665 @@
+{
+  "schema": "yashi-build-skills-index/1",
+  "generated_at": "2026-10-30T20:53:28+08:00",
+  "skills_dir": "skills",
+  "collection": "yashi-skills",
+  "outputs": {
+    "markdown": "SKILLS.md",
+    "html": "SKILLS.html",
+    "database": "SKILLS.json"
+  },
+  "exclude": [
+    ".git",
+    ".hg",
+    ".idea",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".svn",
+    ".venv",
+    ".vscode",
+    "__pycache__",
+    "node_modules",
+    "venv",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    "*.tmp",
+    "*.swp",
+    "*.log",
+    ".DS_Store",
+    "Thumbs.db"
+  ],
+  "stats": {
+    "skills": 21,
+    "with_prompts": 21,
+    "locale_status": {
+      "en": {
+        "ok": 21,
+        "stale": 0,
+        "untranslated": 0
+      },
+      "zh-Hans": {
+        "ok": 21,
+        "stale": 0,
+        "untranslated": 0
+      }
+    }
+  },
+  "skills": [
+    {
+      "dir": "yashi-agents-md-export",
+      "name": "yashi-agents-md-export",
+      "category": "Personal",
+      "description": "从规则数据库 ~/.agents/AGENTS.json 导出 AGENTS.md：按平台（windows/linux/macos/all）与语言（en/zh-CN）筛选条目，生成对应语言的 Markdown 列表。脚本自动侦测操作系统——未指定平台/语言时，按当前系统导出英文版；自动侦测环境，逐条校验规则里声明的命令是否真的存在，剔除含无效命令的条目并报告（含命令级可用性清单）。也负责说明数据库的字段格式与维护方式，供 AI 增删改规则。当用户说“导出 AGENTS.md”“重新生成全局规则”“AGENTS.json 加一条规则”“按平台生成 AGENTS” “这套规则里哪些命令没装”“重新规整 AGENTS 规则”时，调用本技能。",
+      "description_hash": "a956be9d5fd4",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 12161,
+          "mtime": "2026-10-20T09:36:52.194965Z"
+        },
+        {
+          "path": "scripts/export_agents_md.py",
+          "size": 30666,
+          "mtime": "2026-10-16T08:28:23.575264Z"
+        }
+      ],
+      "files_hash": "729970f50908",
+      "source_stamp": "12161:2026-10-20T09:36:52.194965Z",
+      "prompts": [
+        "重新生成全局 AGENTS.md",
+        "往规则数据库里加一条新规则",
+        "只要 windows 平台的规则，导出成 AGENTS.md",
+        "这套规则里哪些命令在我机器上没装"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "从规则数据库 ~/.agents/AGENTS.json 导出 AGENTS.md：按平台（windows/linux/macos/all）与语言（en/zh-CN）筛选条目，生成对应语言的 Markdown 列表。",
+          "use_when": [
+            "[Add use-when scenarios from SKILL.md]"
+          ],
+          "status": "ok",
+          "src_hash": "a956be9d5fd4",
+          "source_stamp": "12161:2026-10-20T09:36:52.194965Z",
+          "text_hash": "c655f03f4a58"
+        },
+        "zh-Hans": {
+          "purpose": "从规则数据库 ~/.agents/AGENTS.json 导出 AGENTS.md：按平台（windows/linux/macos/all）与语言（en/zh-CN）筛选条目，生成对应语言的 Markdown 列表。脚本自动侦测操作系统（未指定时按当前系统导出英文版），并逐条校验规则里声明的命令是否真的存在，剔除含无效命令的条目并报告命令级可用性；同时说明数据库的字段格式与维护方式，供 AI 增删改规则。",
+          "use_when": [
+            "导出 AGENTS.md / 重新生成全局规则",
+            "往 AGENTS.json 加一条规则 / 重新规整 AGENTS 规则",
+            "按平台生成 AGENTS（只要 windows 或 linux 的规则）",
+            "查这套规则里哪些命令没装"
+          ],
+          "status": "ok",
+          "src_hash": "a956be9d5fd4",
+          "source_stamp": "12161:2026-10-20T09:36:52.194965Z",
+          "text_hash": "15fddae5f030"
+        }
+      },
+      "added_at": "2026-10-30T20:51:21+08:00",
+      "updated_at": "2026-10-30T20:53:15+08:00"
+    },
+    {
+      "dir": "yashi-build-skills-index",
+      "name": "yashi-build-skills-index",
+      "category": "Personal",
+      "description": "生成或更新 skill 索引：**先建或更新一份 JSON 数据库**（默认 ~/.agents/SKILLS.json），为每个 skill 记录文件清单与修改时间、上游 description 及其哈希、中英文的用途与适用场景、提示词示例快照；再由数据库渲染出面向 AI 的 ~/.agents/SKILLS.md（默认英文的轻量 Markdown 目录）、面向人类的自包含页面 ~/.agents/SKILLS.html（默认简体中文，分类分组、侧边导航、关键词搜索、锚点、目录链接），以及**面向人类阅读的 Markdown**（--md-style human：分类分组、目录、一句话用途、适用场景、提示词示例、每条「打开目录」链接）；把 --output 指到名为 README.md 的文件时会自动切到人类可读模式 + 简体中文，可直接给 skill 仓库生成首页索引。每次运行都按文件列表与修改时间做增量比对：内容没变的条目直接复用已有的说明与译文，SKILL.md 变了才重写源文并把译文标为待校对，--rebuild 才强制全部重写。遍历 skills 目录下所有 skill，解析各自 SKILL.md 的 YAML front matter（name、description），并校验缺失 SKILL.md、name/description 缺失或用途无法判断、name 与目录名不一致、skill 重名等问题；发现问题不猜测，列出并询问用户。附跨平台、仅标准库的 Python 脚本 scripts/build_skills_index.py，支持 --dry-run、--check、--force、--rebuild、--mark-reviewed、--db、--db-only、--render-only、--ignore-ci、--collection、--md-style、--html-only、--no-html、--output、--html、--skills-dir、--include、--md-lang、--html-lang、--emit-draft、--draft-path、--keep-draft。检测到仓库里存在调用本脚本的 GitHub Action 时，本地运行自动改为只更新数据库，其余产物交给 CI 渲染；附 Action 模板 templates/skills-index.yml（CI 从数据库组装 SKILLS.md、SKILLS.html 与中文 README.md）与仓库 AGENTS.md 模板 templates/repo-AGENTS.md。适用于「创建 skill 索引」「更新 SKILLS.md / SKILLS.html」「给 skill 仓库生成 README.md」「新增、删除或同步 skill 后重建索引」「检查索引是否最新」等场景。",
+      "description_hash": "b83d4af65667",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 26656,
+          "mtime": "2026-10-12T03:19:33.871753Z"
+        },
+        {
+          "path": "scripts/assets/skill-examples.json",
+          "size": 10366,
+          "mtime": "2026-10-30T12:53:11.155848Z"
+        },
+        {
+          "path": "scripts/assets/skills-index.css",
+          "size": 10923,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/assets/skills-index.js",
+          "size": 6446,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/build_skills_index.py",
+          "size": 120169,
+          "mtime": "2026-10-12T03:17:43.771664Z"
+        },
+        {
+          "path": "templates/repo-AGENTS.md",
+          "size": 2254,
+          "mtime": "2026-10-12T02:57:00.597200Z"
+        },
+        {
+          "path": "templates/skills-index.yml",
+          "size": 2022,
+          "mtime": "2026-10-12T02:56:51.377003Z"
+        }
+      ],
+      "files_hash": "40085606c758",
+      "source_stamp": "26656:2026-10-12T03:19:33.871753Z",
+      "prompts": [
+        "重建一下全局 skill 索引",
+        "新增了几个 skill，更新 SKILLS.md 和 SKILLS.html"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "生成或更新 skill 索引：**先建或更新一份 JSON 数据库**（默认 ~/.agents/SKILLS.json），为每个 skill 记录文件清单与修改时间、上游 description 及其哈希、中英文的用途与适用场景、提示词示例快照；再由数据库渲染出面向 AI 的 ~/.agents/SKILLS.md（默认英文的轻量 Markdown 目录）、面向人类的自包含页面 ~/.agents/SKILLS.html（默认简体中文，分类分组、侧边导航、关键词搜索、锚点、目录链接），以及**面向人类阅读的 Markdown**（--md-style human：分类分组、目录、一句话用途、适用场景、提示词示例、每条「打开目录」链接）；把 --output 指到名为 README.md 的文件时会自动切到人类可读模式 + 简体中文，可直接给 skill 仓库生成首页索引。",
+          "use_when": [
+            "创建 skill 索引",
+            "更新 SKILLS.md / SKILLS.html",
+            "给 skill 仓库生成 README.md",
+            "新增、删除或同步 skill 后重建索引",
+            "检查索引是否最新"
+          ],
+          "status": "ok",
+          "src_hash": "b83d4af65667",
+          "source_stamp": "26656:2026-10-12T03:19:33.871753Z",
+          "text_hash": "9cf261d91d5f"
+        },
+        "zh-Hans": {
+          "purpose": "生成或更新 skill 索引：以 JSON 数据库为唯一内容源，渲染出面向 AI 的 SKILLS.md 与面向人类的 SKILLS.html / README.md。",
+          "use_when": [
+            "创建或重建 skill 索引",
+            "新增、删除或同步 skill 后更新索引",
+            "给 skill 仓库生成首页 README.md",
+            "检查索引是否与数据库、skills 目录一致"
+          ],
+          "status": "ok",
+          "src_hash": "b83d4af65667",
+          "source_stamp": "26656:2026-10-12T03:19:33.871753Z",
+          "text_hash": "0a40497b5394"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-30T20:53:15+08:00"
+    },
+    {
+      "dir": "yashi-dida-cli",
+      "name": "yashi-dida-cli",
+      "category": "Personal",
+      "description": "用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、OAuth 或 API 口令登录、以及查询与增删改的常用命令。适用于「更新 dida-cli」「列出我的清单/任务/标签/习惯/专注/倒数日」「建一个滴答任务」「dida 没登录怎么办」「dida auth login」」「按关键词搜滴答任务」「给习惯打卡」等场景。执行任何数据命令前先检查 `dida auth status`；未登录时提醒用户自行运行 `dida auth login` 并暂停，不要代替用户登录。涉及 delete 等写操作前必须先向用户确认。",
+      "description_hash": "f589110dba9c",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 8090,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "8032acd39419",
+      "source_stamp": "8090:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "列出我的滴答清单和今天的任务",
+        "新建一个滴答任务并打上标签"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、OAuth 或 API 口令登录、以及查询与增删改的常用命令。",
+          "use_when": [
+            "更新 dida-cli",
+            "列出我的清单/任务/标签/习惯/专注/倒数日",
+            "建一个滴答任务",
+            "Dida 没登录怎么办",
+            "Dida auth login"
+          ],
+          "status": "ok",
+          "src_hash": "f589110dba9c",
+          "source_stamp": "8090:2026-10-07T12:08:11.000000Z",
+          "text_hash": "2433b1c9e0ce"
+        },
+        "zh-Hans": {
+          "purpose": "用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、OAuth 或 API 口令登录、以及查询与增删改的常用命令。",
+          "use_when": [
+            "更新 dida-cli",
+            "列出我的清单/任务/标签/习惯/专注/倒数日",
+            "建一个滴答任务",
+            "Dida 没登录怎么办",
+            "Dida auth login"
+          ],
+          "status": "ok",
+          "src_hash": "f589110dba9c",
+          "source_stamp": "8090:2026-10-07T12:08:11.000000Z",
+          "text_hash": "2433b1c9e0ce"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-dsh-config-sync",
+      "name": "yashi-dsh-config-sync",
+      "category": "Personal",
+      "description": "一句话导出/导入 DeepSeek Harness（dsh）的配置（压缩包为 7z，**压缩级别 -mx0-9 与 AES-256 密码可选、默认用 -mhe=on 连文件名一起加密**；有图形会话时装了 7-Zip 就用 **7zG 弹图形进度窗口**，否则自动回退控制台 7z；导入侧兼容旧版 zip 并能自动/按参数处理加密包），**核心是「先让用户选范围」**：脚本内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 KEY、环境变量清单、锁文件、TUI 状态、本地插件、历史备份、其它杂项……），既可用 `pick` 弹出原生 GUI 勾选框让用户点选（AI 可用 `--only` 决定只显示哪些选项），也可在 GUI 不可用时由 AI 用 `pick --list` 拿到结构化目录后自行提问，再把结果用 `--scope` 传回导出/导入；还支持 `--profiles` 限定 profile 与 `sync --from web --to desktop` 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，Electron 独占的 profile 如实跳过启动测试）。导入时自动补全依赖（pnpm install + approve-builds）、自动修正 pnpm-workspace.yaml 的 allowBuilds 半成品、检查 pnpm.cmd 包装器指向、实测 dsh web 启停并给出排障建议，可联动 yashi-dsh-update / yashi-dsh-env-sync / yashi-dsh-desktop-migrate。默认只带配置（不含素材包、运行数据、凭证），需要什么由用户显式勾选。适用于「导出 dsh 配置」「备份 dsh 配置」「迁移 dsh 到新机器」「导入 dsh 配置」「恢复 dsh 配置」「只导出某些东西（插件/技能/主题/宠物/表情包/会话列表）」「导出时弹个框让我选」「把 web 的插件和配置同步到桌面版」等场景。",
+      "description_hash": "d2e699708030",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 52516,
+          "mtime": "2026-10-30T12:37:46.510111Z"
+        },
+        {
+          "path": "assets/scope-picker-compress.png",
+          "size": 54164,
+          "mtime": "2026-10-30T12:21:11.654822Z"
+        },
+        {
+          "path": "assets/scope-picker-sensitive.png",
+          "size": 53298,
+          "mtime": "2026-10-30T09:50:33.294053Z"
+        },
+        {
+          "path": "assets/scope-picker.png",
+          "size": 60349,
+          "mtime": "2026-10-30T09:50:33.281050Z"
+        },
+        {
+          "path": "scripts/dsh_config_sync.py",
+          "size": 154111,
+          "mtime": "2026-10-30T12:37:15.124141Z"
+        }
+      ],
+      "files_hash": "cadbf5e4f5c1",
+      "source_stamp": "52516:2026-10-30T12:37:46.510111Z",
+      "prompts": [
+        "把我的 dsh 配置导出一份备份",
+        "换机器了，把 dsh 配置导进去",
+        "把 web 的插件和配置同步到桌面版"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "一句话导出/导入 DeepSeek Harness（dsh）的配置（压缩包为 7z，**压缩级别 -mx0-9 与 AES-256 密码可选、默认用 -mhe=on 连文件名一起加密**；有图形会话时装了 7-Zip 就用 **7zG 弹图形进度窗口**，否则自动回退控制台 7z；导入侧兼容旧版 zip 并能自动/按参数处理加密包），**核心是「先让用户选范围」**：脚本内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 KEY、环境变量清单、锁文件、TUI 状态、本地插件、历史备份、其它杂项……），既可用 `pick` 弹出原生 GUI 勾选框让用户点选（AI 可用 `--only` 决定只显示哪些选项），也可在 GUI 不可用时由 AI 用 `pick --list` 拿到结构化目录后自行提问，再把结果用 `--scope` 传回导出/导入；还支持 `--profiles` 限定 profile 与 `sync --from web --to desktop` 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，Electron 独占的 profile 如实跳过启动测试）。",
+          "use_when": [
+            "导出 dsh 配置",
+            "备份 dsh 配置",
+            "迁移 dsh 到新机器",
+            "导入 dsh 配置",
+            "恢复 dsh 配置"
+          ],
+          "status": "ok",
+          "src_hash": "d2e699708030",
+          "source_stamp": "52516:2026-10-30T12:37:46.510111Z",
+          "text_hash": "d7eff7933f6f"
+        },
+        "zh-Hans": {
+          "purpose": "一句话导出/导入 DeepSeek Harness（dsh）的配置（7z 压缩包，压缩级别 -mx0-9 与 AES-256 密码可选、默认 -mhe=on 连文件名一起加密；有图形会话且装了 7-Zip 时用 7zG 弹进度窗，否则回退控制台 7z；导入兼容旧版 zip 并能自动或按参数处理加密包）。核心是「先让用户选范围」：内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 KEY、环境变量清单、锁文件、TUI 状态、本地插件、历史备份、其它杂项等），可用 `pick` 弹出原生 GUI 勾选框，也可在 GUI 不可用时用 `pick --list` 拿到结构化目录后自行提问、再把结果用 `--scope` 传回；另支持 `--profiles` 限定 profile 与 `sync --from web --to desktop` 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，Electron 独占的 profile 如实跳过启动测试）。导入时自动补全依赖、修正 pnpm-workspace.yaml 的 allowBuilds 半成品、检查 pnpm.cmd 包装器指向、实测 dsh web 启停并给出排障建议，可联动 yashi-dsh-update / yashi-dsh-env-sync / yashi-dsh-desktop-migrate。默认只带配置（不含素材包、运行数据、凭证），要什么由用户显式勾选。",
+          "use_when": [
+            "导出 dsh 配置 / 备份 dsh 配置",
+            "迁移 dsh 到新机器 / 导入、恢复 dsh 配置",
+            "弹个框让我选导出范围（插件配置、skills、主题、宠物、表情包、会话列表）",
+            "只导出插件配置，别把主题、宠物、表情包一起打进去",
+            "只导出会话列表（不要聊天正文），或要连凭证一起导出",
+            "导出要加密 / 带密码（7z + AES-256）",
+            "只导出一个 profile / 把 web 的插件和配置同步到桌面版"
+          ],
+          "status": "ok",
+          "src_hash": "d2e699708030",
+          "source_stamp": "52516:2026-10-30T12:37:46.510111Z",
+          "text_hash": "be4f0e6ccb45"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-30T20:51:21+08:00"
+    },
+    {
+      "dir": "yashi-dsh-desktop-migrate",
+      "name": "yashi-dsh-desktop-migrate",
+      "category": "Personal",
+      "description": "把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。核心背景：桌面版 profile 被 Electron 独占，`dsh plugin --profile desktop` 会被直接拒绝，只能用文件级迁移 + pnpm 安装；0.2.0 起 `$DSH_HOME/settings.yaml` 不再是配置源（设置持久化在各 profile 的 cordis.patch.yml，且该 yaml 一旦出现就会被启动流程一次性导入并改名成 settings.yaml.imported）。附带迁移后校验脚本（依赖差异、bundle 可解析、JSON/YAML 合法性、patch 条目 id 是否有提供方）。适用于「把 dsh web 的插件和配置导入桌面版」「桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件」「让 desktop profile 和 web profile 的插件集一致」「桌面版插件迁移」「dsh 桌面版功能比 web 版少」等场景。",
+      "description_hash": "2a0b7999bfc3",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 7782,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/migrate-profile.mjs",
+          "size": 9996,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/verify-profile-migration.cjs",
+          "size": 8106,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "04dd45bbde8d",
+      "source_stamp": "7782:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "把 dsh web 的插件和配置都导入到桌面版",
+        "桌面版怎么没有宠物和皮肤这些插件"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。",
+          "use_when": [
+            "把 dsh web 的插件和配置导入桌面版",
+            "桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件",
+            "让 desktop profile 和 web profile 的插件集一致",
+            "桌面版插件迁移",
+            "Dsh 桌面版功能比 web 版少"
+          ],
+          "status": "ok",
+          "src_hash": "2a0b7999bfc3",
+          "source_stamp": "7782:2026-10-07T12:08:11.000000Z",
+          "text_hash": "1f54d96c78b6"
+        },
+        "zh-Hans": {
+          "purpose": "把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。",
+          "use_when": [
+            "把 dsh web 的插件和配置导入桌面版",
+            "桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件",
+            "让 desktop profile 和 web profile 的插件集一致",
+            "桌面版插件迁移",
+            "Dsh 桌面版功能比 web 版少"
+          ],
+          "status": "ok",
+          "src_hash": "2a0b7999bfc3",
+          "source_stamp": "7782:2026-10-07T12:08:11.000000Z",
+          "text_hash": "1f54d96c78b6"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-dsh-env-sync",
+      "name": "yashi-dsh-env-sync",
+      "category": "Personal",
+      "description": "一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。适用于「导出 dsh 环境变量」「备份 API key」「迁移 dsh 到新机器需要恢复 key」「从 ini 导入环境变量」「dsh 换机器后 API key 恢复」「检查 dsh 的 key 是否配齐」等场景。",
+      "description_hash": "cda880349a13",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 7070,
+          "mtime": "2026-10-16T09:39:59.791262Z"
+        },
+        {
+          "path": "scripts/dsh_env_sync.py",
+          "size": 20166,
+          "mtime": "2026-10-16T09:39:07.922276Z"
+        }
+      ],
+      "files_hash": "b1c3b63d5fe9",
+      "source_stamp": "7070:2026-10-16T09:39:59.791262Z",
+      "prompts": [
+        "导出我 dsh 的所有环境变量",
+        "检查一下 dsh 的 API key 有没有配齐"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。",
+          "use_when": [
+            "导出 dsh 环境变量",
+            "备份 API key",
+            "迁移 dsh 到新机器需要恢复 key",
+            "从 ini 导入环境变量",
+            "Dsh 换机器后 API key 恢复"
+          ],
+          "status": "ok",
+          "src_hash": "cda880349a13",
+          "source_stamp": "7070:2026-10-16T09:39:59.791262Z",
+          "text_hash": "5724d2cf6dd8"
+        },
+        "zh-Hans": {
+          "purpose": "一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive，读 7z 需本机有 7z，找不到时告警并降级为只扫本机 $DSH_HOME），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。",
+          "use_when": [
+            "导出 dsh 环境变量",
+            "备份 API key",
+            "迁移 dsh 到新机器需要恢复 key",
+            "从 ini 导入环境变量",
+            "Dsh 换机器后 API key 恢复",
+            "检查 dsh 的 key 是否配齐"
+          ],
+          "status": "ok",
+          "src_hash": "cda880349a13",
+          "source_stamp": "7070:2026-10-16T09:39:59.791262Z",
+          "text_hash": "259827ed48e9"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-30T20:51:21+08:00"
+    },
+    {
+      "dir": "yashi-dsh-ssh-otp-patch",
+      "name": "yashi-dsh-ssh-otp-patch",
+      "category": "Personal",
+      "description": "给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2FA 支持（TOTP / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onKeyboardInteractive 沿 exec 链透传进 connectClient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。补丁幂等、带备份、可一键回滚；插件升级、重装或 dsh 更新覆盖 lib/ 之后重跑一次即可恢复。适用于「dsh ssh 连不上 2FA 主机」「ssh_exec 报 Authentication failed (keyboard-interactive): Verification code」「插件升级后 otp 参数消失」「重新打 2FA 补丁」「ssh 主机要谷歌验证码」等场景。",
+      "description_hash": "114397aa2a39",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 4978,
+          "mtime": "2026-10-22T05:57:25.012416Z"
+        },
+        {
+          "path": "scripts/patch-dsh-ssh-otp.mjs",
+          "size": 9393,
+          "mtime": "2026-10-22T05:47:39.525547Z"
+        }
+      ],
+      "files_hash": "63e0a1b83cf3",
+      "source_stamp": "4978:2026-10-22T05:57:25.012416Z",
+      "prompts": [
+        "dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2FA 补丁",
+        "ssh_exec 报 Authentication failed (keyboard-interactive): Verification code，怎么解决",
+        "插件升级后 otp 参数又没了，重新打一次补丁"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2FA 支持（TOTP / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onKeyboardInteractive 沿 exec 链透传进 connectClient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。",
+          "use_when": [
+            "Dsh ssh 连不上 2FA 主机",
+            "Ssh_exec 报 Authentication failed (keyboard-interactive): Verification code",
+            "插件升级后 otp 参数消失",
+            "重新打 2FA 补丁",
+            "Ssh 主机要谷歌验证码"
+          ],
+          "status": "ok",
+          "src_hash": "114397aa2a39",
+          "source_stamp": "4978:2026-10-22T05:57:25.012416Z",
+          "text_hash": "20d086ca2df7"
+        },
+        "zh-Hans": {
+          "purpose": "给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2FA 支持（TOTP / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onKeyboardInteractive 沿 exec 链透传进 connectClient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。补丁幂等、带备份、可一键回滚；插件升级、重装或 dsh 更新覆盖 lib/ 之后重跑一次即可恢复。",
+          "use_when": [
+            "Dsh ssh 连不上 2FA 主机",
+            "Ssh_exec 报 Authentication failed (keyboard-interactive): Verification code",
+            "插件升级后 otp 参数消失",
+            "重新打 2FA 补丁",
+            "Ssh 主机要谷歌验证码"
+          ],
+          "status": "ok",
+          "src_hash": "114397aa2a39",
+          "source_stamp": "4978:2026-10-22T05:57:25.012416Z",
+          "text_hash": "a0dccad0c691"
+        }
+      },
+      "added_at": "2026-10-30T20:51:21+08:00",
+      "updated_at": "2026-10-30T20:53:15+08:00"
+    },
+    {
+      "dir": "yashi-dsh-update",
+      "name": "yashi-dsh-update",
+      "category": "Personal",
+      "description": "一句话更新 DeepSeek Harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $DSH_HOME/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowBuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 ERR_PNPM_UNEXPECTED_STORE），处理 git 依赖与不兼容/被跳过插件，实测 `dsh web --port 3088` 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。适用于「更新 dsh」「升级 DeepSeek Harness」「dsh 更新后启动失败」「dsh web 起不来」「插件依赖未安装」「pnpm install 报错」「ERR_PNPM_UNEXPECTED_STORE」「插件被跳过/不兼容」等场景。代理与端口已由用户固化（http://127.0.0.1:23333，备用 socks5://127.0.0.1:23332；strict-ssl=false；测试端口 3088），无需再问。",
+      "description_hash": "4d498bb3fc8b",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 17281,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "0768d971e6eb",
+      "source_stamp": "17281:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "把 dsh 和所有插件更新到最新",
+        "dsh 更新后起不来了，帮我排查"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "一句话更新 DeepSeek Harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $DSH_HOME/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowBuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 ERR_PNPM_UNEXPECTED_STORE），处理 git 依赖与不兼容/被跳过插件，实测 `dsh web --port 3088` 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。",
+          "use_when": [
+            "更新 dsh",
+            "升级 DeepSeek Harness",
+            "Dsh 更新后启动失败",
+            "Dsh web 起不来",
+            "插件依赖未安装"
+          ],
+          "status": "ok",
+          "src_hash": "4d498bb3fc8b",
+          "source_stamp": "17281:2026-10-07T12:08:11.000000Z",
+          "text_hash": "f12903d96156"
+        },
+        "zh-Hans": {
+          "purpose": "一句话更新 DeepSeek Harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $DSH_HOME/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowBuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 ERR_PNPM_UNEXPECTED_STORE），处理 git 依赖与不兼容/被跳过插件，实测 `dsh web --port 3088` 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。",
+          "use_when": [
+            "更新 dsh",
+            "升级 DeepSeek Harness",
+            "Dsh 更新后启动失败",
+            "Dsh web 起不来",
+            "插件依赖未安装"
+          ],
+          "status": "ok",
+          "src_hash": "4d498bb3fc8b",
+          "source_stamp": "17281:2026-10-07T12:08:11.000000Z",
+          "text_hash": "f12903d96156"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-encoding-convert",
+      "name": "yashi-encoding-convert",
+      "category": "Personal",
+      "description": "文本编码转换工具：读取任意编码的文件（ANSI/GBK、Big5、Shift-JIS、UTF-16 等），输出为 UTF-8（默认）或指定编码。适用于 AI 读取 ANSI/GBK 等非 UTF-8 文件时先转码，或用户需要以特定编码（如 GBK）保存/读取文件时。支持自动检测编码、管道输入输出、就地改写。当用户说\"编码转换\"\"ANSI 文件\"\"GBK 编码\"\"转成 UTF-8\"\"读取乱码文件\" \"以 GBK 保存\"或需要处理非 UTF-8 文本文件时，调用本技能。",
+      "description_hash": "52a897908f3a",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 3737,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/encoding_convert.py",
+          "size": 9061,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "a391738a8d16",
+      "source_stamp": "3737:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "这个文件是 GBK 的，读出来乱码，帮我转成 UTF-8",
+        "把这段文本以 GBK 保存"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "文本编码转换工具：读取任意编码的文件（ANSI/GBK、Big5、Shift-JIS、UTF-16 等），输出为 UTF-8（默认）或指定编码。",
+          "use_when": [
+            "适用于 AI 读取 ANSI/GBK 等非 UTF-8 文件时先转码，或用户需要以特定编码（如 GBK）保存/读取文件时。",
+            "当用户说\"编码转换\"\"ANSI 文件\"\"GBK 编码\"\"转成 UTF-8\"\"读取乱码文件\" \"以 GBK 保存\"或需要处理非 UTF-8 文本文件时，调用本技能。"
+          ],
+          "status": "ok",
+          "src_hash": "52a897908f3a",
+          "source_stamp": "3737:2026-10-07T12:08:11.000000Z",
+          "text_hash": "340274c7bf84"
+        },
+        "zh-Hans": {
+          "purpose": "文本编码转换工具：读取任意编码的文件（ANSI/GBK、Big5、Shift-JIS、UTF-16 等），输出为 UTF-8（默认）或指定编码。",
+          "use_when": [
+            "适用于 AI 读取 ANSI/GBK 等非 UTF-8 文件时先转码，或用户需要以特定编码（如 GBK）保存/读取文件时。",
+            "当用户说\"编码转换\"\"ANSI 文件\"\"GBK 编码\"\"转成 UTF-8\"\"读取乱码文件\" \"以 GBK 保存\"或需要处理非 UTF-8 文本文件时，调用本技能。"
+          ],
+          "status": "ok",
+          "src_hash": "52a897908f3a",
+          "source_stamp": "3737:2026-10-07T12:08:11.000000Z",
+          "text_hash": "340274c7bf84"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-evernight-capture",
+      "name": "yashi-evernight-capture",
+      "category": "Personal",
+      "description": "Capture window or full-screen images on Windows with ECAPTURE.EXE (EvernightCapture) by selecting targets through conditions. Use when taking a screenshot, grabbing one specific app / window / dialog, discovering which windows match (--list / --inspect as structured JSON), naming a monitor by a stable identifier (--screens), capturing several windows at once, capturing one whole monitor, or interpreting ECAPTURE's JSON result, exit codes and stable diagnostic codes. Prefer read-only queries over probing by capturing. Any route that samples desktop pixels (whole screen, bitblt, duplication, DWM's screen fallback) requires the user's own confirmation - present it to the user instead of answering for them.",
+      "description_hash": "a337ed11ff43",
+      "files": [
+        {
+          "path": "ECAPTURE.EXE",
+          "size": 1645056,
+          "mtime": "2026-10-13T03:47:20.000000Z"
+        },
+        {
+          "path": "ECAPTURE.example.ini",
+          "size": 12490,
+          "mtime": "2026-10-13T02:27:32.000000Z"
+        },
+        {
+          "path": "ECAPTURE.ini",
+          "size": 10030,
+          "mtime": "2026-10-11T12:29:18.000000Z"
+        },
+        {
+          "path": "LICENSE",
+          "size": 9801,
+          "mtime": "2026-09-26T17:20:36.000000Z"
+        },
+        {
+          "path": "README.ja-JP.md",
+          "size": 328752,
+          "mtime": "2026-10-13T04:05:50.000000Z"
+        },
+        {
+          "path": "README.md",
+          "size": 280310,
+          "mtime": "2026-10-13T04:05:20.000000Z"
+        },
+        {
+          "path": "README.zh-CN.md",
+          "size": 247425,
+          "mtime": "2026-10-13T04:03:20.000000Z"
+        },
+        {
+          "path": "README.zh-TW.md",
+          "size": 249414,
+          "mtime": "2026-10-13T04:03:40.000000Z"
+        },
+        {
+          "path": "SKILL.md",
+          "size": 53811,
+          "mtime": "2026-10-13T04:06:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-capabilities-tests.exe",
+          "size": 785408,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-compat-tests.exe",
+          "size": 707072,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-crop-tests.exe",
+          "size": 173056,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-delivery-tests.exe",
+          "size": 768512,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-dup-tests.exe",
+          "size": 682496,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-hdr-tests.exe",
+          "size": 792576,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-history-tests.exe",
+          "size": 833536,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-identity-tests.exe",
+          "size": 714752,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-image-tests.exe",
+          "size": 699904,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-notification-tests.exe",
+          "size": 731136,
+          "mtime": "2026-10-13T03:47:14.000000Z"
+        },
+        {
+          "path": "build/ecapture-screens-tests.exe",
+          "size": 757248,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-wgc-tests.exe",
+          "size": 144896,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "build/ecapture-windows-tests.exe",
+          "size": 1114624,
+          "mtime": "2026-10-13T02:46:46.000000Z"
+        },
+        {
+          "path": "evernightcapture.owner.ini",
+          "size": 6981,
+          "mtime": "2026-10-15T09:19:40.036340Z"
+        },
+        {
+          "path": "history/2026-10-12/20261012-204648-59884-b3ca5b191c57-1.png",
+          "size": 17323,
+          "mtime": "2026-10-12T12:46:48.297035Z"
+        },
+        {
+          "path": "history/2026-10-12/20261012-223913-52212-1f891942750-1.png",
+          "size": 66686,
+          "mtime": "2026-10-12T14:39:13.924887Z"
+        },
+        {
+          "path": "history/2026-10-12/20261012-223941-17600-6faefcbb4f8d-1.png",
+          "size": 73661,
+          "mtime": "2026-10-12T14:39:41.490157Z"
+        },
+        {
+          "path": "history/2026-10-13/20261013-123406-56196-fb1960384b8e-1.png",
+          "size": 13162,
+          "mtime": "2026-10-13T04:34:06.865299Z"
+        },
+        {
+          "path": "history/2026-10-17/20261017-131358-33480-58c6283ba921-1.png",
+          "size": 137317,
+          "mtime": "2026-10-17T05:13:58.662982Z"
+        },
+        {
+          "path": "history/2026-10-17/20261017-131512-11668-1b4caa790289-1.png",
+          "size": 124060,
+          "mtime": "2026-10-17T05:15:12.911474Z"
+        },
+        {
+          "path": "history/2026-10-17/20261017-131555-20716-6dc76f6bf8f0-1.png",
+          "size": 38272,
+          "mtime": "2026-10-17T05:15:55.678768Z"
+        },
+        {
+          "path": "history/2026-10-30/20261030-174436-43324-3cc9ca788b6b-1.png",
+          "size": 60349,
+          "mtime": "2026-10-30T09:44:36.514549Z"
+        },
+        {
+          "path": "history/2026-10-30/20261030-174502-41148-8eca40c8937-1.png",
+          "size": 53298,
+          "mtime": "2026-10-30T09:45:02.019176Z"
+        },
+        {
+          "path": "history/2026-10-30/20261030-202011-38900-5c0210574779-1.png",
+          "size": 54164,
+          "mtime": "2026-10-30T12:20:11.837611Z"
+        },
+        {
+          "path": "install-manifest.json",
+          "size": 19394,
+          "mtime": "2026-10-15T09:18:44.000000Z"
+        },
+        {
+          "path": "payload.sha256.txt",
+          "size": 5026,
+          "mtime": "2026-10-15T09:18:44.000000Z"
+        },
+        {
+          "path": "references/cli-contract.md",
+          "size": 205391,
+          "mtime": "2026-10-13T04:07:02.000000Z"
+        },
+        {
+          "path": "resources/icon.ico",
+          "size": 142454,
+          "mtime": "2026-09-28T12:01:00.000000Z"
+        },
+        {
+          "path": "test-all.ps1",
+          "size": 45998,
+          "mtime": "2026-10-13T03:09:52.000000Z"
+        },
+        {
+          "path": "tests/build-path.ps1",
+          "size": 15628,
+          "mtime": "2026-10-10T02:55:32.000000Z"
+        },
+        {
+          "path": "tests/capabilities.ps1",
+          "size": 22127,
+          "mtime": "2026-10-11T09:52:06.000000Z"
+        },
+        {
+          "path": "tests/channels.ps1",
+          "size": 14970,
+          "mtime": "2026-09-27T12:37:10.000000Z"
+        },
+        {
+          "path": "tests/cli.ps1",
+          "size": 146743,
+          "mtime": "2026-10-13T03:19:24.000000Z"
+        },
+        {
+          "path": "tests/compat.ps1",
+          "size": 17794,
+          "mtime": "2026-10-09T14:20:54.000000Z"
+        },
+        {
+          "path": "tests/config.ps1",
+          "size": 23872,
+          "mtime": "2026-10-11T10:41:26.000000Z"
+        },
+        {
+          "path": "tests/consent.ps1",
+          "size": 24286,
+          "mtime": "2026-10-09T14:20:54.000000Z"
+        },
+        {
+          "path": "tests/crop.ps1",
+          "size": 36892,
+          "mtime": "2026-10-09T14:20:54.000000Z"
+        },
+        {
+          "path": "tests/cursor.ps1",
+          "size": 35744,
+          "mtime": "2026-10-09T14:20:54.000000Z"
+        },
+        {
+          "path": "tests/delivery.ps1",
+          "size": 13635,
+          "mtime": "2026-10-09T14:20:56.000000Z"
+        },
+        {
+          "path": "tests/dup.ps1",
+          "size": 26199,
+          "mtime": "2026-10-09T14:22:12.000000Z"
+        },
+        {
+          "path": "tests/harness.psm1",
+          "size": 63181,
+          "mtime": "2026-10-10T16:34:18.000000Z"
+        },
+        {
+          "path": "tests/hdr.ps1",
+          "size": 29953,
+          "mtime": "2026-10-09T14:22:12.000000Z"
+        },
+        {
+          "path": "tests/helper/ec_window.cs",
+          "size": 39394,
+          "mtime": "2026-10-09T15:03:50.000000Z"
+        },
+        {
+          "path": "tests/history.ps1",
+          "size": 31045,
+          "mtime": "2026-10-10T04:32:06.000000Z"
+        },
+        {
+          "path": "tests/identity.ps1",
+          "size": 33376,
+          "mtime": "2026-10-09T14:22:14.000000Z"
+        },
+        {
+          "path": "tests/image.ps1",
+          "size": 12531,
+          "mtime": "2026-10-09T14:22:12.000000Z"
+        },
+        {
+          "path": "tests/install-lifecycle.ps1",
+          "size": 48535,
+          "mtime": "2026-10-12T12:34:56.000000Z"
+        },
+        {
+          "path": "tests/installer-package.ps1",
+          "size": 58979,
+          "mtime": "2026-10-11T10:00:22.000000Z"
+        },
+        {
+          "path": "tests/invoker.ps1",
+          "size": 17512,
+          "mtime": "2026-10-09T15:23:48.000000Z"
+        },
+        {
+          "path": "tests/isolation.ps1",
+          "size": 14007,
+          "mtime": "2026-09-27T12:11:34.000000Z"
+        },
+        {
+          "path": "tests/notification.ps1",
+          "size": 17691,
+          "mtime": "2026-10-13T04:07:52.000000Z"
+        },
+        {
+          "path": "tests/orchestration.ps1",
+          "size": 23384,
+          "mtime": "2026-10-08T14:58:50.000000Z"
+        },
+        {
+          "path": "tests/save.ps1",
+          "size": 29766,
+          "mtime": "2026-09-27T12:11:34.000000Z"
+        },
+        {
+          "path": "tests/scale.ps1",
+          "size": 31160,
+          "mtime": "2026-10-09T14:22:12.000000Z"
+        },
+        {
+          "path": "tests/screen.ps1",
+          "size": 19153,
+          "mtime": "2026-10-09T07:16:24.000000Z"
+        },
+        {
+          "path": "tests/screens.ps1",
+          "size": 30141,
+          "mtime": "2026-10-13T04:18:00.000000Z"
+        },
+        {
+          "path": "tests/smoke.ps1",
+          "size": 6053,
+          "mtime": "2026-09-27T12:33:06.000000Z"
+        },
+        {
+          "path": "tests/streams.ps1",
+          "size": 37829,
+          "mtime": "2026-09-30T00:35:18.000000Z"
+        },
+        {
+          "path": "tests/timeout.ps1",
+          "size": 46525,
+          "mtime": "2026-10-08T06:07:20.000000Z"
+        },
+        {
+          "path": "tests/wgc.ps1",
+          "size": 14070,
+          "mtime": "2026-10-09T14:22:14.000000Z"
+        },
+        {
+          "path": "tests/windows.ps1",
+          "size": 38759,
+          "mtime": "2026-10-09T14:22:14.000000Z"
+        },
+        {
+          "path": "unins000.dat",
+          "size": 39169,
+          "mtime": "2026-10-15T09:19:39.929970Z"
+        },
+        {
+          "path": "unins000.exe",
+          "size": 4506882,
+          "mtime": "2026-10-15T09:19:25.066933Z"
+        },
+        {
+          "path": "verify-install.ps1",
+          "size": 42748,
+          "mtime": "2026-10-11T10:18:48.000000Z"
+        }
+      ],
+      "files_hash": "3cacf4d9b75c",
+      "source_stamp": "53811:2026-10-13T04:06:46.000000Z",
+      "prompts": [
+        "截一下记事本这个窗口的图，存到 D:\\shots\\note.png",
+        "看看现在有哪些窗口，以 JSON 列出来",
+        "这台机器有几块屏，用稳定标识告诉我显示器名字",
+        "抓一下这个对话框，用 wgc 方式，不用整屏截图"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "Capture window or full-screen images on Windows with ECAPTURE.EXE (EvernightCapture) by selecting targets through conditions.",
+          "use_when": [
+            "Taking a screenshot",
+            "Grabbing one specific app / window / dialog",
+            "Discovering which windows match (--list / --inspect as structured JSON)",
+            "Naming a monitor by a stable identifier (--screens)",
+            "Capturing several windows at once"
+          ],
+          "status": "ok",
+          "src_hash": "a337ed11ff43",
+          "source_stamp": "53811:2026-10-13T04:06:46.000000Z",
+          "text_hash": "fa600af80b24"
+        },
+        "zh-Hans": {
+          "purpose": "在 Windows 上用 ECAPTURE.EXE（EvernightCapture）按条件选中目标窗口或整个显示器并截图；成功与失败都以 JSON 返回，带稳定的退出码与诊断码，适合程序化调用。只读查询（--capabilities / --diagnostics / --screens / --list / --inspect / --show-config / --dry-run）优先于靠截图试错；任何会读取桌面像素的路径（整屏、bitblt、duplication、DWM 的屏幕回退）都必须由用户本人确认，不得代为应答。",
+          "use_when": [
+            "截图 / 截取某个指定窗口、对话框或整个显示器",
+            "查询哪些窗口匹配条件（--list / --inspect 的结构化 JSON）",
+            "用稳定标识指定显示器（--screens），或一次截取多个窗口",
+            "解读 ECAPTURE 的 JSON 结果、退出码与诊断码",
+            "只想做只读探测（--capabilities / --dry-run），不实际截图"
+          ],
+          "status": "ok",
+          "src_hash": "a337ed11ff43",
+          "source_stamp": "53811:2026-10-13T04:06:46.000000Z",
+          "text_hash": "cc2c4151588a"
+        }
+      },
+      "added_at": "2026-10-30T20:51:21+08:00",
+      "updated_at": "2026-10-30T20:53:15+08:00"
+    },
+    {
+      "dir": "yashi-flutter-debug",
+      "name": "yashi-flutter-debug",
+      "category": "Personal",
+      "description": "Flutter 调试工作流（Android 真机 / Windows、macOS、Linux 桌面 / Web）：建立稳定的 flutter run 调试会话，并获取 Widget Tree、应用日志输出与目标窗口截图。适用于「Flutter 调试」「Android 真机调试」「Flutter 桌面调试（Windows / macOS / Linux）」「查看 widget 树 / Widget Tree」「抓应用日志 / 控制台输出」「调试截图与热重载观测」等场景。",
+      "description_hash": "ec5931a965de",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 19300,
+          "mtime": "2026-10-12T06:07:27.727420Z"
+        },
+        {
+          "path": "references/troubleshooting.md",
+          "size": 17880,
+          "mtime": "2026-10-12T06:07:21.818273Z"
+        },
+        {
+          "path": "scripts/devtools_probe.py",
+          "size": 5511,
+          "mtime": "2026-10-12T05:24:19.596158Z"
+        },
+        {
+          "path": "scripts/lib.sh",
+          "size": 6023,
+          "mtime": "2026-10-12T06:04:48.178765Z"
+        },
+        {
+          "path": "scripts/pipeline.sh",
+          "size": 1536,
+          "mtime": "2026-10-12T05:53:59.744853Z"
+        },
+        {
+          "path": "scripts/png_check.py",
+          "size": 5321,
+          "mtime": "2026-10-12T06:05:04.828657Z"
+        },
+        {
+          "path": "scripts/preflight.sh",
+          "size": 7443,
+          "mtime": "2026-10-12T06:06:25.271976Z"
+        },
+        {
+          "path": "scripts/shot.sh",
+          "size": 2518,
+          "mtime": "2026-10-12T06:06:09.888836Z"
+        },
+        {
+          "path": "scripts/shot_android.sh",
+          "size": 1393,
+          "mtime": "2026-10-12T05:52:41.489611Z"
+        },
+        {
+          "path": "scripts/shot_linux.sh",
+          "size": 5429,
+          "mtime": "2026-10-12T06:05:58.438166Z"
+        },
+        {
+          "path": "scripts/shot_macos.sh",
+          "size": 4284,
+          "mtime": "2026-10-12T06:05:43.738320Z"
+        },
+        {
+          "path": "scripts/shot_windows.ps1",
+          "size": 4662,
+          "mtime": "2026-10-12T05:52:49.054770Z"
+        },
+        {
+          "path": "scripts/start.sh",
+          "size": 3787,
+          "mtime": "2026-10-12T05:53:15.700339Z"
+        },
+        {
+          "path": "scripts/stop.sh",
+          "size": 3612,
+          "mtime": "2026-10-12T06:06:25.256973Z"
+        },
+        {
+          "path": "scripts/targets.sh",
+          "size": 2783,
+          "mtime": "2026-10-12T05:52:18.817050Z"
+        },
+        {
+          "path": "scripts/watch_logs.sh",
+          "size": 918,
+          "mtime": "2026-10-11T12:07:37.000000Z"
+        },
+        {
+          "path": "scripts/ws_uri.sh",
+          "size": 371,
+          "mtime": "2026-10-11T10:39:40.000000Z"
+        }
+      ],
+      "files_hash": "ca4fbf097a35",
+      "source_stamp": "19300:2026-10-12T06:07:27.727420Z",
+      "prompts": [
+        "在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree",
+        "真机启动调试并截图，我点一下按钮看能不能拿到日志输出",
+        "换 Windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图",
+        "帮我看看这台安卓手机为什么模拟不了点击"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "Flutter 调试工作流（Android 真机 / Windows、macOS、Linux 桌面 / Web）：建立稳定的 flutter run 调试会话，并获取 Widget Tree、应用日志输出与目标窗口截图。",
+          "use_when": [
+            "Flutter 调试",
+            "Android 真机调试",
+            "Flutter 桌面调试（Windows / macOS / Linux）",
+            "查看 widget 树 / Widget Tree",
+            "抓应用日志 / 控制台输出",
+            "调试截图与热重载观测"
+          ],
+          "status": "ok",
+          "src_hash": "ec5931a965de",
+          "source_stamp": "19300:2026-10-12T06:07:27.727420Z",
+          "text_hash": "0d35d739c1f6"
+        },
+        "zh-Hans": {
+          "purpose": "在任意 Flutter 项目里完成调试并观测运行状态：建立 flutter run 会话，读取 Widget Tree、抓应用日志，并只截取目标应用窗口（Android 真机，以及 Windows / macOS / Linux 桌面）。",
+          "use_when": [
+            "Flutter 调试（Android 真机 / 桌面 / Web）",
+            "Android 真机调试",
+            "查看 widget 树 / Widget Tree",
+            "抓应用日志或控制台输出",
+            "调试截图与热重载观测",
+            "排查真机点击无法注入、无可用目标等环境问题"
+          ],
+          "status": "ok",
+          "src_hash": "ec5931a965de",
+          "source_stamp": "19300:2026-10-12T06:07:27.727420Z",
+          "text_hash": "d916d7fef0a3"
+        }
+      },
+      "added_at": "2026-10-12T16:33:17+08:00",
+      "updated_at": "2026-10-12T16:33:50+08:00"
+    },
+    {
+      "dir": "yashi-github-read-contributions",
+      "name": "yashi-github-read-contributions",
+      "category": "Personal",
+      "description": "讀取 GitHub 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。適用於任意 GitHub 使用者。",
+      "description_hash": "901d51009a42",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 3751,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "a3e4e7448448",
+      "source_stamp": "3751:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "看一下某个 GitHub 用户的贡献热力图",
+        "算一下他连续贡献了多少天"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "讀取 GitHub 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。",
+          "use_when": [
+            "適用於任意 GitHub 使用者。"
+          ],
+          "status": "ok",
+          "src_hash": "901d51009a42",
+          "source_stamp": "3751:2026-10-07T12:08:11.000000Z",
+          "text_hash": "b3af8454fc8f"
+        },
+        "zh-Hans": {
+          "purpose": "讀取 GitHub 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。",
+          "use_when": [
+            "適用於任意 GitHub 使用者。"
+          ],
+          "status": "ok",
+          "src_hash": "901d51009a42",
+          "source_stamp": "3751:2026-10-07T12:08:11.000000Z",
+          "text_hash": "b3af8454fc8f"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-global-skills-sync",
+      "name": "yashi-global-skills-sync",
+      "category": "Personal",
+      "description": "一句话同步用户全局 skill 目录 `~/.agents/skills/`——从六个固定 GitHub 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 CodeNotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。规则：线上有本地无则添加、本地有线上无则删除、更新一律以线上为准（源仓库为空/无匹配时只告警不删除）；并按各 SKILL.md 要求安装 CLI/MCP 依赖（go install 立即执行；下载优先 npm -g 而非 npx，除非 skill 明确指定 npx；统一走代理 http://127.0.0.1:23333，证书问题临时 strict-ssl=false，npm 包开 allow-scripts）。最后检查/更新多个全局 AGENTS.md（~/.dsh/AGENTS.md、~/.config/opencode/AGENTS.md、~/.qoder-cn/AGENTS.md）的引用并删除失效项，输出全部 skill 清单（一句介绍）与本次变更。附**跨平台 Python 一键脚本** `scripts/sync-skills.py`（仅标准库，按大小+SHA-256 内容比对，Windows/macOS/Linux 通用，支持 --include/--dry-run/--proxy）。适用于「同步全局 skill」「更新 skill」「检查 skill 有没有新版本」「拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill」「skill 增删改」等场景。",
+      "description_hash": "ac0d3c946f1c",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 13974,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/sync-skills.py",
+          "size": 12441,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "709369026574",
+      "source_stamp": "13974:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "同步一下我全局的 skill",
+        "检查和更新 dart、flutter、golang 这些 skill"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "一句话同步用户全局 skill 目录 `~/.agents/skills/`——从六个固定 GitHub 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 CodeNotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。",
+          "use_when": [
+            "同步全局 skill",
+            "更新 skill",
+            "检查 skill 有没有新版本",
+            "拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill",
+            "Skill 增删改"
+          ],
+          "status": "ok",
+          "src_hash": "ac0d3c946f1c",
+          "source_stamp": "13974:2026-10-07T12:08:11.000000Z",
+          "text_hash": "29cb707d56b5"
+        },
+        "zh-Hans": {
+          "purpose": "一句话同步用户全局 skill 目录 `~/.agents/skills/`——从六个固定 GitHub 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 CodeNotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。",
+          "use_when": [
+            "同步全局 skill",
+            "更新 skill",
+            "检查 skill 有没有新版本",
+            "拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill",
+            "Skill 增删改"
+          ],
+          "status": "ok",
+          "src_hash": "ac0d3c946f1c",
+          "source_stamp": "13974:2026-10-07T12:08:11.000000Z",
+          "text_hash": "29cb707d56b5"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-mcp-proxy-injection",
+      "name": "yashi-mcp-proxy-injection",
+      "category": "Personal",
+      "description": "为任意读取网址或通过非中国搜索引擎（Google、Bing 国际版等）搜索的本地 MCP 服务器注入代理，解决其联网失败(fetch failed、chromium ERR_TIMED_OUT / ERR_CONNECTION_TIMED_OUT、无法访问被墙的 API 或搜索引擎)。通用方法论：适用于任意此类 MCP 服务器、任意 MCP host（opencode / Claude Code / Claude Desktop / Cline 等）与任意本地代理服务器（HTTP CONNECT 或 SOCKS5），代理地址通过环境变量可配置，不绑定特定插件。安装此类 MCP 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。适用于安装、修复或排查无法联网的 MCP 服务器、MCP host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。",
+      "description_hash": "de864785bd08",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 6734,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "cf979f3103fd",
+      "source_stamp": "6734:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "这个 MCP 服务器联网失败，帮我注入代理",
+        "chromium 连不上 Google，给 MCP 配个代理"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "为任意读取网址或通过非中国搜索引擎（Google、Bing 国际版等）搜索的本地 MCP 服务器注入代理，解决其联网失败(fetch failed、chromium ERR_TIMED_OUT / ERR_CONNECTION_TIMED_OUT、无法访问被墙的 API 或搜索引擎)。",
+          "use_when": [
+            "通用方法论：适用于任意此类 MCP 服务器、任意 MCP host（opencode / Claude Code / Claude Desktop / Cline 等）与任意本地代理服务器（HTTP CONNECT 或 SOCKS5），代理地址通过环境变量可配置，不绑定特定插件。",
+            "安装此类 MCP 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。",
+            "适用于安装、修复或排查无法联网的 MCP 服务器、MCP host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。"
+          ],
+          "status": "ok",
+          "src_hash": "de864785bd08",
+          "source_stamp": "6734:2026-10-07T12:08:11.000000Z",
+          "text_hash": "ff6b6e4f01a6"
+        },
+        "zh-Hans": {
+          "purpose": "为任意读取网址或通过非中国搜索引擎（Google、Bing 国际版等）搜索的本地 MCP 服务器注入代理，解决其联网失败(fetch failed、chromium ERR_TIMED_OUT / ERR_CONNECTION_TIMED_OUT、无法访问被墙的 API 或搜索引擎)。",
+          "use_when": [
+            "通用方法论：适用于任意此类 MCP 服务器、任意 MCP host（opencode / Claude Code / Claude Desktop / Cline 等）与任意本地代理服务器（HTTP CONNECT 或 SOCKS5），代理地址通过环境变量可配置，不绑定特定插件。",
+            "安装此类 MCP 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。",
+            "适用于安装、修复或排查无法联网的 MCP 服务器、MCP host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。"
+          ],
+          "status": "ok",
+          "src_hash": "de864785bd08",
+          "source_stamp": "6734:2026-10-07T12:08:11.000000Z",
+          "text_hash": "ff6b6e4f01a6"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-md-table-format",
+      "name": "yashi-md-table-format",
+      "category": "Personal",
+      "description": "格式化 Markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。当需要\"表格对齐\"\"整理表格\"\"格式化表格\" \"表格工整\"\"让表格列宽一致\"，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。",
+      "description_hash": "05cf2e5566bb",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 2528,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/md_table_format.py",
+          "size": 9639,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "297cce5e87d8",
+      "source_stamp": "2528:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "把这份 Markdown 的表格对齐一下",
+        "表格列宽不齐，整理成工整的"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "格式化 Markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。",
+          "use_when": [
+            "适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。",
+            "当需要\"表格对齐\"\"整理表格\"\"格式化表格\" \"表格工整\"\"让表格列宽一致\"，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。"
+          ],
+          "status": "ok",
+          "src_hash": "05cf2e5566bb",
+          "source_stamp": "2528:2026-10-07T12:08:11.000000Z",
+          "text_hash": "34ae845ce611"
+        },
+        "zh-Hans": {
+          "purpose": "格式化 Markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。",
+          "use_when": [
+            "适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。",
+            "当需要\"表格对齐\"\"整理表格\"\"格式化表格\" \"表格工整\"\"让表格列宽一致\"，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。"
+          ],
+          "status": "ok",
+          "src_hash": "05cf2e5566bb",
+          "source_stamp": "2528:2026-10-07T12:08:11.000000Z",
+          "text_hash": "34ae845ce611"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-node-tls-trust-fix",
+      "name": "yashi-node-tls-trust-fix",
+      "category": "Personal",
+      "description": "诊断并修复杀毒软件、企业代理等对 HTTPS 做中间人（MITM）替换证书后，Node 类工具 TLS 校验失败的问题：报 SELF_SIGNED_CERT_IN_CHAIN、UNABLE_TO_VERIFY_LEAF_SIGNATURE、 fetch failed、模型请求频繁重试等。做法是识别拦截方自己的根证书并把它加入 Node 的信任列表（NODE_EXTRA_CA_CERTS），在保留证书校验的前提下修好，而不是关掉校验。适用于 DSH、 opencode、Qoder CLI、pnpm、npm、MCP 等所有 Node 程序；也用于反查「某个域名为什么偶发失败」。当遇到\"证书错误\"\"证书校验失败\"\"self-signed certificate in certificate chain\" \"HTTPS 被杀毒软件拦截\"\"加密连接扫描\"\"模型经常重试\"\"fetch failed\"时调用本技能。不适用：证书确实过期或域名不匹配（应修服务端），以及纯粹的网络不可达。",
+      "description_hash": "46919b0bbb6c",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 10065,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/export-intercept-ca.ps1",
+          "size": 11473,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/node-trusted-roots.mjs",
+          "size": 2652,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        },
+        {
+          "path": "scripts/tls_probe.mjs",
+          "size": 6024,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "1f18e49003b1",
+      "source_stamp": "10065:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "模型老是重试，查一下是不是证书被换了",
+        "fetch failed，怀疑杀毒软件拦截了 HTTPS",
+        "把卡巴斯基的根证书加进 Node 的信任列表"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "诊断并修复杀毒软件、企业代理等对 HTTPS 做中间人（MITM）替换证书后，Node 类工具 TLS 校验失败的问题：报 SELF_SIGNED_CERT_IN_CHAIN、UNABLE_TO_VERIFY_LEAF_SIGNATURE、 fetch failed、模型请求频繁重试等。",
+          "use_when": [
+            "某个域名为什么偶发失败",
+            "当遇到\"证书错误\"\"证书校验失败\"\"self-signed certificate in certificate chain\" \"HTTPS 被杀毒软件拦截\"\"加密连接扫描\"\"模型经常重试\"\"fetch failed\"时调用本技能。"
+          ],
+          "status": "ok",
+          "src_hash": "46919b0bbb6c",
+          "source_stamp": "10065:2026-10-07T12:08:11.000000Z",
+          "text_hash": "84d47d02087d"
+        },
+        "zh-Hans": {
+          "purpose": "诊断并修复杀毒软件、企业代理等对 HTTPS 做中间人（MITM）替换证书后，Node 类工具 TLS 校验失败的问题：报 SELF_SIGNED_CERT_IN_CHAIN、UNABLE_TO_VERIFY_LEAF_SIGNATURE、 fetch failed、模型请求频繁重试等。",
+          "use_when": [
+            "某个域名为什么偶发失败",
+            "当遇到\"证书错误\"\"证书校验失败\"\"self-signed certificate in certificate chain\" \"HTTPS 被杀毒软件拦截\"\"加密连接扫描\"\"模型经常重试\"\"fetch failed\"时调用本技能。"
+          ],
+          "status": "ok",
+          "src_hash": "46919b0bbb6c",
+          "source_stamp": "10065:2026-10-07T12:08:11.000000Z",
+          "text_hash": "84d47d02087d"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-opencc-convert",
+      "name": "yashi-opencc-convert",
+      "category": "Personal",
+      "description": "使用 OpenCC 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。默认自动检测方向（含繁体字则转简体，全简体则转繁体），也可显式指定转换集。适用于 .md 文件、代码注释、对话内容中的简繁转换需求。当用户说\"简繁转换\" \"简体转繁体\"\"繁体转简体\"\"转成台湾繁体\"\"转成香港繁体\"\"把这段转成繁体/简体\" 或需要统一文本简繁风格时，调用本技能。",
+      "description_hash": "b680a0cba350",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 5858,
+          "mtime": "2026-10-21T01:22:00.737642Z"
+        },
+        {
+          "path": "scripts/opencc_convert.py",
+          "size": 11858,
+          "mtime": "2026-10-21T01:21:58.462588Z"
+        }
+      ],
+      "files_hash": "1a8e30cfd55c",
+      "source_stamp": "5858:2026-10-21T01:22:00.737642Z",
+      "prompts": [
+        "把这份文档转成繁体中文",
+        "这段繁体转成简体"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "使用 OpenCC 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。",
+          "use_when": [
+            "适用于 .md 文件、代码注释、对话内容中的简繁转换需求。",
+            "当用户说\"简繁转换\" \"简体转繁体\"\"繁体转简体\"\"转成台湾繁体\"\"转成香港繁体\"\"把这段转成繁体/简体\" 或需要统一文本简繁风格时，调用本技能。"
+          ],
+          "status": "ok",
+          "src_hash": "b680a0cba350",
+          "source_stamp": "5858:2026-10-21T01:22:00.737642Z",
+          "text_hash": "7afe9775d1be"
+        },
+        "zh-Hans": {
+          "purpose": "使用 OpenCC 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。",
+          "use_when": [
+            "适用于 .md 文件、代码注释、对话内容中的简繁转换需求。",
+            "当用户说\"简繁转换\" \"简体转繁体\"\"繁体转简体\"\"转成台湾繁体\"\"转成香港繁体\"\"把这段转成繁体/简体\" 或需要统一文本简繁风格时，调用本技能。"
+          ],
+          "status": "ok",
+          "src_hash": "b680a0cba350",
+          "source_stamp": "5858:2026-10-21T01:22:00.737642Z",
+          "text_hash": "7afe9775d1be"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-30T20:53:28+08:00"
+    },
+    {
+      "dir": "yashi-opencode-config-portability",
+      "name": "yashi-opencode-config-portability",
+      "category": "Personal",
+      "description": "一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。打包 ~/.config/opencode 与 ~/.agents 两个目录，使用 7z -mx9 压缩，默认文件名 opencode_config.7z，跨 Windows/macOS/Linux。导入/导出前先用标准 JSON.parse 校验配置文件（opencode.json 维持标准 JSON），结束后安全清理临时文件（含 token 的先覆盖再删除）。导入后自动检查 MCP 所需环境、MCP 可用性，以及导入的 skill 是否适配本机。Use when the user says 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。",
+      "description_hash": "d5f83338903b",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 24962,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "479741aeb8a0",
+      "source_stamp": "24962:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "导出我的 opencode 全部设置",
+        "把 opencode 配置迁移到新机器"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。",
+          "use_when": [
+            "The user says 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。"
+          ],
+          "status": "ok",
+          "src_hash": "d5f83338903b",
+          "source_stamp": "24962:2026-10-07T12:08:11.000000Z",
+          "text_hash": "1bd33c77f67a"
+        },
+        "zh-Hans": {
+          "purpose": "一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。",
+          "use_when": [
+            "当用户说 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。"
+          ],
+          "status": "ok",
+          "src_hash": "d5f83338903b",
+          "source_stamp": "24962:2026-10-07T12:08:11.000000Z",
+          "text_hash": "f3d2c6ecf49b"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-rtk-token-saver",
+      "name": "yashi-rtk-token-saver",
+      "category": "Personal",
+      "description": "在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 LLM token。适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 JSON 时使用。跨平台通用：Windows cmd.exe 与 Linux/macOS bash 均适用；由于本环境未启用 rtk 的自动改写 hook/插件，必须由 AI 显式手动加 rtk 前缀。",
+      "description_hash": "a6303c7cea76",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 12578,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "cae8a5e8a606",
+      "source_stamp": "12578:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "跑一下测试，用 rtk 压缩输出",
+        "看下 git 状态和最近的提交"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 LLM token。",
+          "use_when": [
+            "适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。",
+            "当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 JSON 时使用。"
+          ],
+          "status": "ok",
+          "src_hash": "a6303c7cea76",
+          "source_stamp": "12578:2026-10-07T12:08:11.000000Z",
+          "text_hash": "f0403da26abd"
+        },
+        "zh-Hans": {
+          "purpose": "在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 LLM token。",
+          "use_when": [
+            "适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。",
+            "当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 JSON 时使用。"
+          ],
+          "status": "ok",
+          "src_hash": "a6303c7cea76",
+          "source_stamp": "12578:2026-10-07T12:08:11.000000Z",
+          "text_hash": "f0403da26abd"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    },
+    {
+      "dir": "yashi-windows-bsod-analysis",
+      "name": "yashi-windows-bsod-analysis",
+      "category": "Personal",
+      "description": "分析 Windows 蓝屏（BSOD）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 BugCheck 码与参数，用 WinDbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。适用于「蓝屏」「BSOD」「minidump」「MEMORY.DMP」「BugCheck 0x1E / 0x50 / 0xD1 / 0x139」「WRONG_SYMBOLS」「KiFatalExceptionHandler」「蓝屏重启」等场景。注意：缺少调试工具时只告知用户下载渠道，不自行下载或安装，除非用户明确要求。",
+      "description_hash": "d518af58c382",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 15229,
+          "mtime": "2026-10-28T05:09:33.409117Z"
+        }
+      ],
+      "files_hash": "00d402a43d32",
+      "source_stamp": "15229:2026-10-28T05:09:33.409117Z",
+      "prompts": [
+        "帮我看看这个蓝屏 dump：C:\\Windows\\Minidump\\102826-15593-01.dmp",
+        "电脑今天蓝屏了，帮我分析 MEMORY.DMP",
+        "BugCheck 0x1E 是什么意思，严重吗",
+        "0xFFFFF800BDA19BDF 这个地址属于哪个驱动",
+        "!analyze 报 WRONG_SYMBOLS 怎么处理",
+        "连续蓝屏两次，把这两个 dump 都过一遍"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "分析 Windows 蓝屏（BSOD）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 BugCheck 码与参数，用 WinDbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。",
+          "use_when": [
+            "蓝屏",
+            "BSOD",
+            "Minidump",
+            "MEMORY.DMP",
+            "BugCheck 0x1E / 0x50 / 0xD1 / 0x139"
+          ],
+          "status": "ok",
+          "src_hash": "d518af58c382",
+          "source_stamp": "15229:2026-10-28T05:09:33.409117Z",
+          "text_hash": "c70430587b94"
+        },
+        "zh-Hans": {
+          "purpose": "分析 Windows 蓝屏（BSOD）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 BugCheck 码与参数，用 WinDbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。",
+          "use_when": [
+            "蓝屏 / BSOD / 蓝屏重启",
+            "Minidump、MEMORY.DMP、完整/内核/活动/小内存转储",
+            "BugCheck 0x1E / 0x50 / 0xD1 / 0x139",
+            "WinDbg 报 WRONG_SYMBOLS、KiFatalExceptionHandler",
+            "想知道是哪个驱动导致蓝屏，或缺少调试工具时该去哪下"
+          ],
+          "status": "ok",
+          "src_hash": "d518af58c382",
+          "source_stamp": "15229:2026-10-28T05:09:33.409117Z",
+          "text_hash": "85a59a877467"
+        }
+      },
+      "added_at": "2026-10-30T20:51:21+08:00",
+      "updated_at": "2026-10-30T20:51:21+08:00"
+    },
+    {
+      "dir": "yashi-windows-check-update",
+      "name": "yashi-windows-check-update",
+      "category": "Personal",
+      "description": "检查 Windows 11/10/Server 的最新功能更新，从 Microsoft 发布健康页面和 Update Catalog 提取 KB 信息及下载链接。适用于 x64/ARM64 架构。",
+      "description_hash": "f97fa766ee76",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 6204,
+          "mtime": "2026-10-07T12:08:11.000000Z"
+        }
+      ],
+      "files_hash": "ef8942036c8e",
+      "source_stamp": "6204:2026-10-07T12:08:11.000000Z",
+      "prompts": [
+        "查一下 Windows 11 最新的功能更新",
+        "有没有新的累积更新 KB 和下载链接"
+      ],
+      "locales": {
+        "en": {
+          "purpose": "检查 Windows 11/10/Server 的最新功能更新，从 Microsoft 发布健康页面和 Update Catalog 提取 KB 信息及下载链接。",
+          "use_when": [
+            "适用于 x64/ARM64 架构。"
+          ],
+          "status": "ok",
+          "src_hash": "f97fa766ee76",
+          "source_stamp": "6204:2026-10-07T12:08:11.000000Z",
+          "text_hash": "76ad7f40e590"
+        },
+        "zh-Hans": {
+          "purpose": "检查 Windows 11/10/Server 的最新功能更新，从 Microsoft 发布健康页面和 Update Catalog 提取 KB 信息及下载链接。",
+          "use_when": [
+            "适用于 x64/ARM64 架构。"
+          ],
+          "status": "ok",
+          "src_hash": "f97fa766ee76",
+          "source_stamp": "6204:2026-10-07T12:08:11.000000Z",
+          "text_hash": "76ad7f40e590"
+        }
+      },
+      "added_at": "2026-10-12T11:02:52+08:00",
+      "updated_at": "2026-10-12T11:02:52+08:00"
+    }
+  ],
+  "_doc": {
+    "purpose": "Database of the skill index: one record per skill, carrying the file inventory used for incremental rebuilds and the prose of every language. The Markdown index and the HTML page are rendered from it.",
+    "generated_by": "yashi-build-skills-index (scripts/build_skills_index.py)",
+    "fields": {
+      "collection": "title of the human-readable index, fixed when the database is created so local runs and CI agree",
+      "description": "verbatim front-matter description of the skill's SKILL.md",
+      "description_hash": "hash of that description; a change rewrites the source prose",
+      "files": "path, size and UTC mtime of every file in the skill folder",
+      "files_hash": "hash of that file list; the basis of the incremental rebuild",
+      "source_stamp": "size:mtime of SKILL.md, the source the prose is written against",
+      "prompts": "example prompts, mirrored from scripts/assets/skill-examples.json",
+      "locales": "purpose + use_when per language; src_hash and source_stamp are the description hash and the SKILL.md stamp the text was reviewed against, text_hash notices hand edits (an edited text counts as reviewed)",
+      "status": "ok | stale (upstream moved, review the text) | untranslated",
+      "added_at / updated_at": "first and last time this record changed",
+      "generated_at": "last time the payload changed, not the last run"
+    },
+    "editing": "Edit the prose here (or translate the --emit-draft file), then rerun; --rebuild rewrites every source-language text and marks all translations for review, --mark-reviewed confirms pending reviews without touching the text."
+  }
+}

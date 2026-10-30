@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared helpers for flutter-android-device-debug scripts.
+# Shared helpers for yashi-flutter-debug scripts.
 # Sourced (never executed directly). Cross-platform: Linux / macOS / Windows(Git Bash).
 
 # ---- tool / interpreter detection ----------------------------------------
@@ -13,6 +13,59 @@ detect_py() {
 detect_adb() {
   if [ -n "${ADB:-}" ]; then printf '%s\n' "$ADB"; return 0; fi
   command -v adb 2>/dev/null || echo adb
+}
+
+# ---- target kind ---------------------------------------------------------
+# Coarse target classification, used to pick the right screenshot / cleanup
+# path. Args: a Flutter device id (e.g. 5a42974d / windows / chrome).
+# Prints: android | desktop | web (empty for an empty id).
+target_kind_of() {
+  case "$1" in
+    windows|macos|linux)        echo desktop ;;
+    chrome|edge|web-server|web) echo web ;;
+    "")                         echo "" ;;
+    *)                          echo android ;;
+  esac
+}
+
+# Read the device id recorded by start.sh's `flutter run --machine` session.
+# Args: [log file] (default: ./run_machine.jsonl)
+target_id_from_log() {
+  local log="${1:-run_machine.jsonl}"
+  grep -oE '"deviceId":"[^"]+"' "$log" 2>/dev/null | tail -1 | sed 's/.*"deviceId":"//; s/"$//'
+}
+
+# ---- desktop app name ----------------------------------------------------
+# Derive the running desktop app's process/binary name for THIS project, per OS.
+# It is always derived from the project's own generated files, never guessed:
+#   windows : windows/CMakeLists.txt        set(BINARY_NAME "x")
+#   linux   : linux/CMakeLists.txt          set(BINARY_NAME "x")
+#   macos   : macos/Runner/Configs/AppInfo.xcconfig   PRODUCT_NAME = x
+# Prints the name, or nothing when it cannot be derived (caller decides).
+# Args: [project dir] (default: $PWD)
+desktop_app_name() {
+  local dir="${1:-$PWD}" f="" n=""
+  case "$(os_family)" in
+    macos)
+      f="$dir/macos/Runner/Configs/AppInfo.xcconfig"
+      if [ -f "$f" ]; then
+        n="$(grep -E '^[[:space:]]*PRODUCT_NAME[[:space:]]*=' "$f" 2>/dev/null | head -1 | sed 's/^[^=]*=[[:space:]]*//' | tr -d '\r')"
+      fi
+      ;;
+    linux)
+      f="$dir/linux/CMakeLists.txt"
+      if [ -f "$f" ]; then
+        n="$(grep -oE 'set\(BINARY_NAME[[:space:]]+"[^"]+"' "$f" 2>/dev/null | head -1 | sed 's/.*"\(.*\)"/\1/')"
+      fi
+      ;;
+    *)
+      f="$dir/windows/CMakeLists.txt"
+      if [ -f "$f" ]; then
+        n="$(grep -oE 'set\(BINARY_NAME[[:space:]]+"[^"]+"' "$f" 2>/dev/null | head -1 | sed 's/.*"\(.*\)"/\1/')"
+      fi
+      ;;
+  esac
+  printf '%s\n' "$n"
 }
 
 # ---- OS ------------------------------------------------------------------

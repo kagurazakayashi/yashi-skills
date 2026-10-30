@@ -162,6 +162,12 @@
     "给这个后台管理界面做一套配色和字体方案",
     "审一下这个页面的可用性问题并给改进建议"
   ],
+  "yashi-agents-md-export": [
+    "重新生成全局 AGENTS.md",
+    "往规则数据库里加一条新规则",
+    "只要 windows 平台的规则，导出成 AGENTS.md",
+    "这套规则里哪些命令在我机器上没装"
+  ],
   "yashi-build-skills-index": [
     "重建一下全局 skill 索引",
     "新增了几个 skill，更新 SKILLS.md 和 SKILLS.html"
@@ -183,6 +189,11 @@
     "导出我 dsh 的所有环境变量",
     "检查一下 dsh 的 API key 有没有配齐"
   ],
+  "yashi-dsh-ssh-otp-patch": [
+    "dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2FA 补丁",
+    "ssh_exec 报 Authentication failed (keyboard-interactive): Verification code，怎么解决",
+    "插件升级后 otp 参数又没了，重新打一次补丁"
+  ],
   "yashi-dsh-update": [
     "把 dsh 和所有插件更新到最新",
     "dsh 更新后起不来了，帮我排查"
@@ -191,9 +202,17 @@
     "这个文件是 GBK 的，读出来乱码，帮我转成 UTF-8",
     "把这段文本以 GBK 保存"
   ],
-  "yashi-flutter-android-device-debug": [
+  "yashi-evernight-capture": [
+    "截一下记事本这个窗口的图，存到 D:\\shots\\note.png",
+    "看看现在有哪些窗口，以 JSON 列出来",
+    "这台机器有几块屏，用稳定标识告诉我显示器名字",
+    "抓一下这个对话框，用 wgc 方式，不用整屏截图"
+  ],
+  "yashi-flutter-debug": [
     "在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree",
-    "真机启动调试并截图，我点一下按钮看能不能拿到日志输出"
+    "真机启动调试并截图，我点一下按钮看能不能拿到日志输出",
+    "换 Windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图",
+    "帮我看看这台安卓手机为什么模拟不了点击"
   ],
   "yashi-github-read-contributions": [
     "看一下某个 GitHub 用户的贡献热力图",
@@ -231,5 +250,13 @@
   "yashi-windows-check-update": [
     "查一下 Windows 11 最新的功能更新",
     "有没有新的累积更新 KB 和下载链接"
+  ],
+  "yashi-windows-bsod-analysis": [
+    "帮我看看这个蓝屏 dump：C:\\Windows\\Minidump\\102826-15593-01.dmp",
+    "电脑今天蓝屏了，帮我分析 MEMORY.DMP",
+    "BugCheck 0x1E 是什么意思，严重吗",
+    "0xFFFFF800BDA19BDF 这个地址属于哪个驱动",
+    "!analyze 报 WRONG_SYMBOLS 怎么处理",
+    "连续蓝屏两次，把这两个 dump 都过一遍"
   ]
 }

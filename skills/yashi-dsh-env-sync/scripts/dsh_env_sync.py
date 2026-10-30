@@ -8,7 +8,7 @@ dsh_env_sync.py — DeepSeek Harness（dsh）环境变量导入 / 导出（ini �
 ``yashi-dsh-config-sync`` 导出配置时**故意不含环境变量**（API key 等），
 所以密钥要靠本脚本单独备份/恢复。两者配合才是完整的迁移：
 
-    config-sync 导出配置 zip  +  env-sync 导出 ~/dsh-env-backup.ini
+    config-sync 导出配置 7z  +  env-sync 导出 ~/dsh-env-backup.ini
 
 功能
 ----
@@ -28,7 +28,7 @@ dsh_env_sync.py — DeepSeek Harness（dsh）环境变量导入 / 导出（ini �
 2. ``$DSH_HOME/profiles/*/cordis.patch.yml``、``profiles/*/package.json``
    里的 ``process.env.X`` / ``${X}`` / ``apiKeyEnv`` 引用；
 3. ``$DSH_HOME`` 顶层 ``*.json`` / ``*.yaml`` 插件配置里的同类引用；
-4. ``--from-archive <config-sync 导出的 zip>``：直接读包内 manifest 的
+4. ``--from-archive <config-sync 导出的 7z（兼容旧版 zip）>``：直接读包内 manifest 的
    ``envVarsReferenced`` 并扫描包内配置（**迁移到新机器时的推荐用法**）；
 5. ``--whitelist A B`` 手工补充（以及默认白名单 ``DSH_HOME``）。
 
@@ -44,10 +44,12 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import fnmatch
 import json
 import os
 import platform
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -167,38 +169,113 @@ def names_from_home(home: Path, names: set[str]) -> list[str]:
     return scanned
 
 
+#: 手工指定 7z 可执行文件的路径（与 yashi-dsh-config-sync 用同一环境变量）。
+SEVENZIP_ENV = "DSH_SYNC_7Z"
+
+#: zip 本地文件头魔数：config-sync 旧版（zip 时代）导出包的标识。
+_ZIP_MAGIC = b"PK\x03\x04"
+
+
+def find_sevenzip() -> str | None:
+    """定位 7z（7-Zip / p7zip）可执行文件；None 表示本机没有。"""
+    cands: list[str] = []
+    env = os.environ.get(SEVENZIP_ENV)
+    if env and env.strip():
+        cands.append(env.strip())
+    cands += ["7z", "7za", "7zr"]
+    if os.name == "nt":
+        for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramW6432"),
+                     os.environ.get("ProgramFiles(x86)"),
+                     r"C:\ProgramData\chocolatey\bin"):
+            if base:
+                cands += [str(Path(base) / "7-Zip" / "7z.exe"),
+                          str(Path(base) / "7z.exe")]
+    else:
+        cands += ["/usr/bin/7z", "/usr/local/bin/7z", "/opt/homebrew/bin/7z",
+                  "/usr/lib/p7zip/7z", "/usr/bin/7za"]
+    for cand in dict.fromkeys(c for c in cands if c):
+        if os.sep in cand or "/" in cand:
+            if Path(cand).is_file():
+                return cand
+        else:
+            found = shutil.which(cand)
+            if found:
+                return found
+    return None
+
+
+def extract_package(archive: Path, dest: Path) -> bool:
+    """把 config-sync 的配置包整包解到 dest（7z 交给 7z，旧版 zip 用标准库）。
+
+    只需要读包内内容，所以直接整包解压到调用方给的临时目录；失败时打印原因并
+    返回 False，由调用方降级为「只看本机 $DSH_HOME」。
+    """
+    try:
+        with archive.open("rb") as f:
+            legacy_zip = f.read(4) == _ZIP_MAGIC
+    except OSError as e:
+        warn(f"无法读取导出包: {e}")
+        return False
+
+    if legacy_zip:
+        # zipfile 解压时会剥掉绝对路径与 .. 段，不会越出 dest。
+        with zipfile.ZipFile(archive) as zf:
+            zf.extractall(dest)
+        return True
+
+    exe = find_sevenzip()
+    if not exe:
+        warn("找不到 7z（7-Zip / p7zip），读不了 7z 配置包；安装后重试，"
+             f"或用环境变量 {SEVENZIP_ENV} 指定 7z 全路径")
+        return False
+    proc = subprocess.run([exe, "x", str(archive.resolve()), f"-o{dest.resolve()}",
+                           "-aoa", "-bd", "-y"],
+                          stdin=subprocess.DEVNULL, capture_output=True,
+                          text=True, errors="replace", timeout=1800)
+    if proc.returncode != 0:
+        warn("7z 解压失败: "
+             + ((proc.stdout or "") + (proc.stderr or "")).strip()[:500])
+        return False
+    return True
+
+
 def names_from_archive(archive: Path, names: set[str]) -> tuple[list[str], list[str]]:
-    """扫描 config-sync 导出的 zip。返回 (扫描过的条目, manifest 里的引用)。"""
+    """扫描 config-sync 导出的配置包（7z，兼容旧版 zip）。
+
+    返回 (扫描过的条目, manifest 里的引用)。
+    """
     scanned: list[str] = []
     manifest_refs: list[str] = []
     if not archive.is_file():
         warn(f"找不到导出包: {archive}")
         return scanned, manifest_refs
-    try:
-        zf = zipfile.ZipFile(archive)
-    except zipfile.BadZipFile as e:
-        warn(f"不是有效的 zip: {e}")
-        return scanned, manifest_refs
 
-    with zf:
-        if "manifest.json" in zf.namelist():
+    with tempfile.TemporaryDirectory(prefix="dsh-env-archive-") as td:
+        root = Path(td)
+        if not extract_package(archive, root):
+            return scanned, manifest_refs
+
+        mf = root / "manifest.json"
+        if mf.is_file():
             try:
-                man = json.loads(zf.read("manifest.json").decode("utf-8"))
+                man = json.loads(mf.read_text(encoding="utf-8"))
                 manifest_refs = list(man.get("envVarsReferenced") or [])
                 names.update(manifest_refs)
             except Exception:
                 pass
 
-        import fnmatch
-        for info in zf.infolist():
-            if info.is_dir() or not info.filename.startswith("dsh-home/"):
+        home = root / "dsh-home"
+        if not home.is_dir():
+            return scanned, manifest_refs
+        for f in sorted(home.rglob("*")):
+            if not f.is_file():
                 continue
-            rel = info.filename[len("dsh-home/"):]
+            rel = f.relative_to(home).as_posix()
             if not any(fnmatch.fnmatch(rel, g) for g in ARCHIVE_SCAN_GLOBS):
                 continue
             try:
-                text = zf.read(info).decode("utf-8", errors="ignore")
-            except Exception:
+                text = f.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
                 continue
             scanned.append(rel)
             scan_text_for_names(text, names)
@@ -430,7 +507,8 @@ def main() -> int:
 
     def common(p):
         p.add_argument("--home", help="覆盖 $DSH_HOME")
-        p.add_argument("--from-archive", help="从 config-sync 导出的 zip 里发现变量名")
+        p.add_argument("--from-archive",
+                       help="从 config-sync 导出的配置包（7z；兼容旧版 zip）里发现变量名")
         p.add_argument("-w", "--whitelist", nargs="*", help="额外变量名（空格分隔）")
 
     pl = sub.add_parser("list", help="列出 dsh 用到的环境变量名（值打码）")

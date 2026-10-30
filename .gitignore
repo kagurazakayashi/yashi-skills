@@ -3,3 +3,18 @@ __pycache__/
 AGENTS.md
 MEMORY.md
 .w*
+
+# 本机运行产物：测试二进制、截图历史（每次运行都会变，不入库）
+skills/yashi-evernight-capture/build/
+skills/yashi-evernight-capture/history/
+
+# ECAPTURE 的机器本地文件：用户偏好、安装器归属标记与卸载程序
+skills/yashi-evernight-capture/ECAPTURE.ini
+skills/yashi-evernight-capture/evernightcapture.owner.ini
+skills/yashi-evernight-capture/unins000.*
+
+# 系统与编辑器垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

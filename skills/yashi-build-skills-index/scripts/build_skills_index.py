@@ -50,39 +50,77 @@ builds its entry point with one flag:
 
 Both outputs can be limited to a subset of skills with --include (glob patterns
 matched against the skill directory name, e.g. --include 'yashi-*'). A filtered
-run writes to its own files -- SKILLS.<tag>.md / SKILLS.<tag>.html -- so building
-a subset can never overwrite the complete index, and it seeds the localized prose
-from the full page so the subset comes out translated on the very first run.
+run writes to its own files -- SKILLS.<tag>.md / SKILLS.<tag>.html /
+SKILLS.<tag>.json -- so building a subset can never overwrite the complete index,
+and it seeds its prose from the full database (or page) so the subset comes out
+translated on the very first run.
 
-Because the two defaults differ, the HTML prose is not copied from the
-Markdown index. Whenever --html-lang differs from --md-lang, the localized
-prose is assembled from two sources, in order of precedence:
+Three run modes split the work between the agent and CI:
 
-  1. the temporary translation draft (--emit-draft, --draft-path) - a copy of
-     the index template written in the HTML language, which the agent edits by
-     hand;
-  2. the prose already present in the previous SKILLS.html, reused whenever the
-     upstream SKILL.md description is unchanged (`data-src` hash), so that only
-     new or updated skills have to be translated again.
+  (default)       scan the skills, update the database and render everything. In
+                  a repository that installs the workflow below the scan updates
+                  the database only, because CI owns the rendered files;
+  --db-only       update the database, render nothing;
+  --render-only   render the stored database only -- no scan, no database write.
+                  This is what the action runs;
+  --ignore-ci     do not look for the workflow, render locally in any case.
 
-The draft is a scratch file: it defaults to the system temp directory and is
-removed as soon as the HTML has been rendered with it (--keep-draft keeps it).
-Entries without localized prose yet fall back to the Markdown text and are
-reported as untranslated; entries whose upstream description changed are marked
-as stale, and that review flag survives further renders until a draft pass
-confirms the translation. Partial translation is therefore safe: translated
-entries survive in the HTML and are carried into the next draft.
+The action template (templates/skills-index.yml) renders SKILLS.md (English, the
+AI-facing catalogue), SKILLS.html and README.md (Simplified Chinese, for people)
+from SKILLS.json and commits them, so the database is the only index file that is
+edited by hand.
+
+A JSON database drives everything (--db; by default the Markdown index path
+with a .json suffix, i.e. ~/.agents/SKILLS.json). It is written first and is the
+single long-lived carrier of the prose: per skill it holds the file list with
+sizes and modification times, the upstream description and its hash, an English
+and a Simplified-Chinese copy of the purpose and the use-when list, and the
+example prompts. The Markdown index and the HTML page are then rendered from it,
+so the two can no longer drift apart, and neither is read back for its wording.
+
+Rebuilding is incremental. Every skill is compared with its database entry by
+the file list and modification times (plus the description hash):
+
+  unchanged       nothing to do; the stored prose and translation are reused;
+  new             a new skill: the prose is seeded from the previous Markdown
+                  index (or from the front-matter heuristic), and the other
+                  languages start out untranslated;
+  src-changed     SKILL.md's description changed: the source prose is
+                  regenerated, and every other language is marked for review;
+  source-changed  SKILL.md changed without touching the description: the prose
+                  is kept and marked for review;
+  files-changed   only other files in the skill folder changed: reported, but
+                  the prose is kept as it is;
+  rebuild         --rebuild was passed: every skill is rewritten and every
+                  translation is marked for review.
+
+A translation counts as reviewed again as soon as its text is edited -- in the
+database itself or in the draft written by --emit-draft -- or when
+--mark-reviewed is passed.
+
+The database is never silently recreated: a corrupt one stops the run, because
+it carries the only long-lived copy of the translations. When it does not exist
+yet, the prose is seeded from the previous SKILLS.md (source language) and
+SKILLS.html (the other languages), so an existing index migrates without losing
+translation work.
+
+The translation draft (--emit-draft, --draft-path) is still a scratch file: it
+defaults to the system temp directory, it is written in the HTML language, and
+it is removed once the database has been updated with it (--keep-draft keeps
+it). Entries without localized prose fall back to the source text and are
+reported as untranslated, so partial translation stays safe.
 
 Validation issues (missing SKILL.md, missing/empty name or description, name
 not matching the directory, duplicate names) are reported instead of guessed;
-the Markdown index is not written while issues exist unless --force is passed.
+nothing is written while issues exist unless --force is passed.
 
 Examples:
-  python3 scripts/build_skills_index.py               # build md + html
+  python3 scripts/build_skills_index.py               # build db + md + html
   python3 scripts/build_skills_index.py --emit-draft  # write the zh draft
   python3 scripts/build_skills_index.py --html-only   # render html only
   python3 scripts/build_skills_index.py --dry-run     # preview, no writes
   python3 scripts/build_skills_index.py --check       # fail if outputs stale
+  python3 scripts/build_skills_index.py --rebuild     # rewrite all prose
   python3 scripts/build_skills_index.py --html-lang en
   python3 scripts/build_skills_index.py --output README.md   # human md, zh-Hans
 """
@@ -97,6 +135,7 @@ import json
 import re
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -498,6 +537,78 @@ class SkillEntry:
         self.path = path
         self.name = fields.get("name", "").strip()
         self.description = fields.get("description", "").strip()
+        # File inventory, the basis of an incremental rebuild: path, size and
+        # mtime of every file in the skill folder (caches excluded).
+        self.files: list[dict] = []
+        self.files_hash = ""
+        # Stamp of SKILL.md alone, so a body edit is told apart from other
+        # files of the skill (assets, scripts) changing.
+        self.skill_md_stamp = ""
+
+
+# Directories and files that stay out of change detection: caches and editor
+# leftovers change on their own schedule and say nothing about the prose.
+EXCLUDE_DIR_NAMES = {
+    "__pycache__", ".git", ".hg", ".svn", "node_modules", ".venv", "venv",
+    ".mypy_cache", ".pytest_cache", ".ruff_cache", ".idea", ".vscode",
+}
+EXCLUDE_FILE_PATTERNS = ("*.pyc", "*.pyo", "*.pyd", "*.tmp", "*.swp", "*.log",
+                         ".DS_Store", "Thumbs.db")
+
+
+def is_excluded(rel_path: str) -> bool:
+    """Whether a skill-relative path is cache/plumbing rather than content."""
+    parts = rel_path.split("/")
+    if any(part in EXCLUDE_DIR_NAMES for part in parts[:-1]):
+        return True
+    name = parts[-1]
+    if name in EXCLUDE_DIR_NAMES:
+        return True
+    return any(fnmatch.fnmatchcase(name, pat) for pat in EXCLUDE_FILE_PATTERNS)
+
+
+def iso_utc(timestamp: float) -> str:
+    """Microsecond-resolution UTC timestamp.
+
+    Seconds alone are not enough: two writes to the same file inside one second
+    that happen to keep the byte count would look identical, and the incremental
+    comparison would miss the change. Microseconds are readable, stable across
+    runs, and precise enough for every file system this runs on.
+    """
+    return datetime.fromtimestamp(timestamp, timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%S.%f") + "Z"
+
+
+def collect_files(skill_dir: Path) -> list[dict]:
+    """Inventory a skill folder: relative path, byte size and mtime per file."""
+    files: list[dict] = []
+    for path in sorted(skill_dir.rglob("*"), key=lambda p: p.as_posix()):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(skill_dir).as_posix()
+        if is_excluded(relative):
+            continue
+        try:
+            st = path.stat()
+        except OSError:  # pragma: no cover - unreadable file
+            continue
+        files.append({"path": relative, "size": st.st_size,
+                      "mtime": iso_utc(st.st_mtime)})
+    return files
+
+
+def files_fingerprint(files: list[dict]) -> str:
+    """Hash of the file list: any add, remove, resize or touch changes it."""
+    blob = "\n".join(f"{f['path']}\t{f['size']}\t{f['mtime']}" for f in files)
+    return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:HASH_LEN]
+
+
+def file_stamp(files: list[dict], relative: str) -> str:
+    """size+mtime stamp of one known file, or '' when it is not in the list."""
+    for f in files:
+        if f["path"] == relative:
+            return f"{f['size']}:{f['mtime']}"
+    return ""
 
 
 def discover_skills(skills_dir: Path) -> list[SkillEntry]:
@@ -512,9 +623,13 @@ def discover_skills(skills_dir: Path) -> list[SkillEntry]:
         if skill_md.is_file():
             text = skill_md.read_text(encoding="utf-8", errors="replace")
             fields = parse_front_matter(text)
-            entries.append(SkillEntry(child.name, skill_md, fields))
+            entry = SkillEntry(child.name, skill_md, fields)
         else:
-            entries.append(SkillEntry(child.name, None, {}))
+            entry = SkillEntry(child.name, None, {})
+        entry.files = collect_files(child)
+        entry.files_hash = files_fingerprint(entry.files)
+        entry.skill_md_stamp = file_stamp(entry.files, "SKILL.md")
+        entries.append(entry)
     return entries
 
 
@@ -593,6 +708,17 @@ README_MD_LANG = "zh-Hans"
 # and it seeds translations from the full page (see main()).
 DEFAULT_MD_PATH = "~/.agents/SKILLS.md"
 DEFAULT_HTML_PATH = "~/.agents/SKILLS.html"
+
+# The database sits next to the Markdown index and takes its name:
+# ~/.agents/SKILLS.md -> ~/.agents/SKILLS.json. It is the long-lived carrier of
+# the prose (both languages) and of the file inventory used for change
+# detection; the Markdown and HTML outputs are rendered from it.
+DB_SUFFIX = ".json"
+DB_SCHEMA = "yashi-build-skills-index/1"
+
+# The language the prose is authored in. Every other language is a translation
+# of it, and is the only kind of text that needs a human to confirm a review.
+SOURCE_LANG = "en"
 
 # The skill directory the shared example-prompt file is written for. Only a scan
 # of this directory can call an unmatched example key stale; a repository index or
@@ -740,11 +866,20 @@ def category_of(name: str) -> str:
 # Markdown rendering (AI-oriented)
 # ---------------------------------------------------------------------------
 
-def render_markdown(prepared: list[dict], lang: str) -> str:
+def render_markdown(prepared: list[dict], lang: str, skills_dir: Path,
+                    md_path: Path) -> str:
+    """Render the AI-oriented index.
+
+    The location line follows the same rule as the human outputs (see
+    location_display): an index inside its own tree points at the folder
+    relatively, so a repository catalogue does not claim the skills live under
+    ~/.agents/skills/.
+    """
     s = STRINGS[lang]
     labels = s["labels"]
     lines = [s["md_title"], ""] + list(s["md_intro"])
     for b in prepared:
+        shown, _target = location_display(skills_dir, md_path, b["dir"])
         lines += [
             "",
             f"## {b['name']}",
@@ -758,7 +893,7 @@ def render_markdown(prepared: list[dict], lang: str) -> str:
         lines += [
             "",
             labels["location"],
-            f"`~/.agents/skills/{b['dir']}/`",
+            f"`{shown}`",
         ]
     return "\n".join(lines) + "\n"
 
@@ -815,7 +950,7 @@ def location_display(skills_dir: Path, index_path: Path | None,
 
 
 def render_markdown_human(prepared: list[dict], lang: str, skills_dir: Path,
-                          md_path: Path) -> str:
+                          md_path: Path, collection: str | None = None) -> str:
     """Render the human-oriented Markdown index (--md-style human).
 
     It follows the same content rules as the HTML page -- category grouping, a
@@ -835,14 +970,15 @@ def render_markdown_human(prepared: list[dict], lang: str, skills_dir: Path,
     strings = STRINGS[lang]
     categories = strings["categories"]
     labels = strings["labels"]
-    examples = load_examples()
 
     grouped: dict[str, list[dict]] = {c: [] for c in CATEGORY_ORDER}
     for b in prepared:
         grouped[category_of(b["name"])].append(b)
 
     lines: list[str] = [strings["md_human_title"], ""]
-    _prefix, collection = index_scope(skills_dir, md_path)
+    _prefix, scope_collection = index_scope(skills_dir, md_path)
+    if collection is None:
+        collection = scope_collection
     if collection:
         # A repository index says which collection it belongs to; the title is
         # part of the regenerated frame, so it is not hand-editable either.
@@ -876,7 +1012,7 @@ def render_markdown_human(prepared: list[dict], lang: str, skills_dir: Path,
             lines += [f"- {bullet}" for bullet in b["bullets"]]
             lines += ["", labels["location"],
                       f"`{shown}` · [{strings['open_folder']}]({target})"]
-            prompts = examples.get(b["name"], [])
+            prompts = list(b.get("prompts") or [])
             if prompts:
                 lines += ["", f"{strings['examples_label']}:", "", "```text"]
                 lines += list(prompts)
@@ -965,40 +1101,532 @@ def default_draft_path(html_path: Path, html_lang: str) -> Path:
     return Path(tempfile.gettempdir()) / DRAFT_DIR_NAME / f"{html_path.stem}.{tag}.md"
 
 
-def load_source_blocks(entries: list[SkillEntry], md_path: Path) -> list[dict]:
-    """Build the source-language blocks for an entry set.
+# ---------------------------------------------------------------------------
+# Database: the long-lived carrier of the prose and of the file inventory
+# ---------------------------------------------------------------------------
 
-    The polished Markdown index supplies the wording; skills that exist on disk
-    but are missing from it are rendered from their front matter instead, so the
-    page never silently drops a skill. Every block carries the upstream
-    description hash used for translation reuse.
+# Per-skill sync states, reported on stderr. They are derived on every run and
+# deliberately not stored: a stored copy would change the database on every run
+# and break the "no change means byte-identical" property.
+STATE_NEW = "new"
+STATE_UNCHANGED = "unchanged"
+STATE_SRC_CHANGED = "src-changed"
+STATE_SOURCE_CHANGED = "source-changed"
+STATE_FILES_CHANGED = "files-changed"
+STATE_REBUILD = "rebuild"
+
+# States in which the upstream text moved and a translation needs a look.
+UPSTREAM_STATES = (STATE_NEW, STATE_REBUILD, STATE_SRC_CHANGED,
+                   STATE_SOURCE_CHANGED)
+
+
+def db_path_for(md_path: Path) -> Path:
+    """Database that accompanies a Markdown index: path.md -> path.json."""
+    return md_path.with_suffix(DB_SUFFIX)
+
+
+def normalize_db(db: dict) -> dict[str, dict]:
+    """Map skill directory -> stored record, dropping malformed entries."""
+    out: dict[str, dict] = {}
+    for rec in db.get("skills") or []:
+        if isinstance(rec, dict) and isinstance(rec.get("dir"), str) and rec["dir"]:
+            out[rec["dir"]] = rec
+    return out
+
+
+def load_db(path: Path) -> dict:
+    """Read the database; a missing file is empty, a corrupt one is fatal.
+
+    The database carries the only long-lived copy of the localized prose, so a
+    malformed file is never overwritten silently: the run stops and the user
+    decides. --rebuild exists to recreate it from the rendered outputs.
     """
-    heuristic = prepare(entries)
-    by_dir = {b["dir"]: b for b in heuristic}
-    desc_hash = {e.directory: source_hash(e.description) for e in entries}
+    if not path.is_file():
+        return {}
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise SystemExit(f"error: cannot read the database {path}: {exc}")
+    try:
+        data = json.loads(raw)
+    except ValueError as exc:
+        raise SystemExit(
+            f"error: cannot parse the database {path}: {exc}\n"
+            "It carries the only copy of the translations, so it is not "
+            "overwritten automatically. Fix it by hand, or delete it to rebuild "
+            "the database from the current outputs."
+        )
+    if not isinstance(data, dict) or not isinstance(data.get("skills"), list):
+        raise SystemExit(
+            f"error: {path} is not a skills-index database "
+            f"(no 'skills' list at the top level)"
+        )
+    return data
 
-    blocks: list[dict] = []
-    seen: set[str] = set()
-    if md_path.is_file():
+
+def dump_db(db: dict) -> str:
+    """Serialise the database: UTF-8 text, two-space indent, trailing newline."""
+    return json.dumps(db, ensure_ascii=False, indent=2) + "\n"
+
+
+def now_local_iso() -> str:
+    """Local timestamp with an offset: readable, unambiguous, sortable."""
+    return datetime.now().astimezone().replace(microsecond=0).isoformat()
+
+
+def locale_text_hash(purpose: str, bullets: list[str]) -> str:
+    """Hash of one language slot's text, used to notice hand edits.
+
+    The database stores the hash of the text it wrote. When the two disagree,
+    somebody edited the text, and the slot counts as reviewed.
+    """
+    blob = "\n".join([purpose or "", *[str(b) for b in (bullets or [])]])
+    return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:HASH_LEN]
+
+
+def _record_core(rec: dict) -> str:
+    """Stable JSON of a record without its timestamps, for change detection."""
+    core = {k: v for k, v in rec.items() if k not in ("added_at", "updated_at")}
+    return json.dumps(core, sort_keys=True, ensure_ascii=False)
+
+
+def _old_locale(old: dict, lang: str) -> dict:
+    locales = old.get("locales")
+    if not isinstance(locales, dict):
+        return {}
+    loc = locales.get(lang)
+    return loc if isinstance(loc, dict) else {}
+
+
+def _localized_texts(old_loc: dict, seed: dict | None,
+                     fallback_src_hash: str,
+                     current_stamp: str) -> tuple[str, list[str], str, str]:
+    """Text of a translated language slot: stored wording first, then the seed.
+
+    A translation is never regenerated automatically, only flagged for review,
+    so once a slot has text that text wins. The seed (recovered from the previous
+    SKILLS.html or from another database) is used the first time an entry is
+    seen; its own review state travels with it, so a page that showed the source
+    text for a missing translation cannot pass it off as a translation, and a
+    page that was waiting for review cannot pass its text off as reviewed.
+    """
+    stored = (old_loc.get("purpose") or "").strip()
+    if stored:
+        return (stored, list(old_loc.get("use_when") or []),
+                old_loc.get("src_hash") or "", old_loc.get("source_stamp") or "")
+    if seed and ((seed.get("purpose") or "").strip() or seed.get("bullets")):
+        seed_status = seed.get("status") or STATUS_OK
+        if seed_status == STATUS_UNTRANSLATED:
+            return "", [], "", ""
+        src_hash = seed.get("src_hash") or fallback_src_hash
+        if seed_status == STATUS_STALE:
+            # Borrow the text, but not the claim that it matches the current
+            # skill: the review flag has to survive the round trip.
+            src_hash = ""
+        return ((seed.get("purpose") or "").strip(), list(seed.get("bullets") or []),
+                src_hash, current_stamp)
+    return "", [], "", ""
+
+
+def _source_texts(state: str, heuristic: dict, seed: dict | None,
+                  old_loc: dict, desc_hash: str, current_stamp: str,
+                  seed_is_current: bool = True) -> tuple[str, list[str], str, str]:
+    """Text of the source language under the current sync state.
+
+    The source prose is rewritten when the state says the upstream text moved
+    (rebuild, changed description), seeded from the previous Markdown index for
+    a brand-new entry, and otherwise kept as stored. A seed whose recorded
+    description hash no longer matches the skill is dropped: it belongs to an
+    older wording of the skill, so the front-matter heuristic is used instead.
+    """
+    if state in (STATE_REBUILD, STATE_SRC_CHANGED):
+        return heuristic["purpose"], list(heuristic["bullets"]), desc_hash, current_stamp
+    if state == STATE_NEW:
+        if seed_is_current and seed and (seed.get("purpose") or "").strip():
+            return seed["purpose"], list(seed.get("bullets") or []), desc_hash, current_stamp
+        return heuristic["purpose"], list(heuristic["bullets"]), desc_hash, current_stamp
+    stored = (old_loc.get("purpose") or "").strip()
+    if stored:
+        return stored, list(old_loc.get("use_when") or []), desc_hash, current_stamp
+    if seed_is_current and seed and (seed.get("purpose") or "").strip():
+        return seed["purpose"], list(seed.get("bullets") or []), desc_hash, current_stamp
+    return heuristic["purpose"], list(heuristic["bullets"]), desc_hash, current_stamp
+
+
+def _build_locale(lang: str, texts: tuple[str, list[str], str, str], old_loc: dict,
+                  state: str, desc_hash: str, skill_md_stamp: str,
+                  mark_reviewed: bool) -> dict:
+    """Assemble one language slot: text, review status and bookkeeping hashes.
+
+    A translation is reviewed when its text still matches the SKILL.md it was
+    written against: both the description hash and the SKILL.md stamp have to
+    line up. A source-language slot is a derivative of the front matter, so it
+    has nothing to review.
+    """
+    purpose, bullets, src_hash, source_stamp = texts
+    purpose = (purpose or "").strip()
+    bullets = [str(b).strip() for b in (bullets or []) if str(b).strip()]
+    if not purpose:
+        status = STATUS_UNTRANSLATED
+        src_hash = ""
+        source_stamp = ""
+    elif lang == SOURCE_LANG:
+        status = STATUS_OK
+        src_hash = desc_hash
+        source_stamp = skill_md_stamp
+    else:
+        old_hash = old_loc.get("text_hash") or ""
+        edited = bool(old_hash) and old_hash != locale_text_hash(
+            (old_loc.get("purpose") or "").strip(),
+            list(old_loc.get("use_when") or []),
+        )
+        if edited or mark_reviewed:
+            # A hand edit (or an explicit confirmation) means somebody looked at
+            # the text against the current skill: it is reviewed as of now.
+            status = STATUS_OK
+            src_hash = desc_hash
+            source_stamp = skill_md_stamp
+        elif state == STATE_REBUILD:
+            # A forced rebuild revokes the review of every translation: clearing
+            # the bookkeeping hashes is what keeps that decision stable across
+            # the following runs (a plain run must not silently restore "ok").
+            status = STATUS_STALE
+            src_hash = ""
+            source_stamp = ""
+        elif src_hash == desc_hash and source_stamp == skill_md_stamp:
+            status = STATUS_OK
+        elif state in UPSTREAM_STATES:
+            status = STATUS_STALE
+        else:
+            # Nothing moved: keep a pending review pending, otherwise the stored
+            # text is still current.
+            status = STATUS_STALE if old_loc.get("status") == STATUS_STALE else STATUS_OK
+            if status == STATUS_OK:
+                src_hash = desc_hash
+                source_stamp = skill_md_stamp
+    return {
+        "purpose": purpose,
+        "use_when": bullets,
+        "status": status,
+        "src_hash": src_hash if purpose else "",
+        "source_stamp": source_stamp if purpose else "",
+        "text_hash": locale_text_hash(purpose, bullets) if purpose else "",
+    }
+
+
+def sync_records(entries: list[SkillEntry], prepared: list[dict], db: dict,
+                 *, rebuild: bool, mark_reviewed: bool,
+                 source_seed: dict[str, dict],
+                 localized_seed: dict[str, dict],
+                 examples: dict[str, list[str]],
+                 now: str) -> tuple[list[dict], dict[str, str]]:
+    """Reconcile the scanned skills with the stored database.
+
+    Returns (records, states): the fresh records in scan order, and the sync
+    state per directory so main() can report what changed. Prose is kept
+    whenever the file inventory says the skill did not move; it is regenerated
+    when the upstream description changed, and marked for review when SKILL.md
+    itself changed or --rebuild was passed.
+    """
+    stored = normalize_db(db)
+    heuristic = {b["dir"]: b for b in prepared}
+    records: list[dict] = []
+    states: dict[str, str] = {}
+
+    for entry in entries:
+        old = stored.get(entry.directory) or {}
+        heur = heuristic.get(entry.directory) or {
+            "purpose": PURPOSE_PLACEHOLDER, "bullets": [USE_WHEN_PLACEHOLDER]}
+        desc_hash = source_hash(entry.description)
+
+        if rebuild:
+            # An explicit rebuild outranks everything, including a brand-new
+            # entry: the prose is regenerated from the front matter.
+            state = STATE_REBUILD
+        elif not old:
+            state = STATE_NEW
+        elif (old.get("description_hash") or "") != desc_hash:
+            state = STATE_SRC_CHANGED
+        elif file_stamp(old.get("files") or [], "SKILL.md") != entry.skill_md_stamp:
+            state = STATE_SOURCE_CHANGED
+        elif (old.get("files_hash") or "") != entry.files_hash:
+            state = STATE_FILES_CHANGED
+        else:
+            state = STATE_UNCHANGED
+        states[entry.directory] = state
+
+        name = entry.name or entry.directory
+        # A seed recovered from an older page records the description hash it was
+        # written against; a mismatch means the skill has moved since, so the
+        # seeded wording is stale and must not be copied forward.
+        seed_hash = ((localized_seed.get(name) or {}).get("src_hash") or "")
+        seed_is_current = (not seed_hash) or seed_hash == desc_hash
+        locales: dict[str, dict] = {}
+        for lang in SUPPORTED_LANGS:
+            old_loc = _old_locale(old, lang)
+            if lang == SOURCE_LANG:
+                texts = _source_texts(state, heur, source_seed.get(entry.directory),
+                                      old_loc, desc_hash, entry.skill_md_stamp,
+                                      seed_is_current)
+            else:
+                texts = _localized_texts(old_loc, localized_seed.get(name), desc_hash,
+                                         entry.skill_md_stamp)
+            locales[lang] = _build_locale(lang, texts, old_loc, state, desc_hash,
+                                          entry.skill_md_stamp, mark_reviewed)
+
+        # The prompt examples are authored in scripts/assets/skill-examples.json
+        # and mirrored here, so that one JSON file describes every skill fully.
+        prompts = [str(p).strip() for p in (examples.get(name) or []) if str(p).strip()]
+
+        record = {
+            "dir": entry.directory,
+            "name": name,
+            "category": category_of(name),
+            "description": entry.description,
+            "description_hash": desc_hash,
+            "files": entry.files,
+            "files_hash": entry.files_hash,
+            "source_stamp": entry.skill_md_stamp,
+            "prompts": prompts,
+            "locales": locales,
+            "added_at": (old.get("added_at") or now) if old else now,
+            "updated_at": now,
+        }
+        if old and _record_core(old) == _record_core(record):
+            # Nothing but the timestamp would change: keep the stored one, so an
+            # unchanged run leaves the database byte-identical.
+            record["added_at"] = old.get("added_at") or now
+            record["updated_at"] = old.get("updated_at") or now
+        records.append(record)
+
+    return records, states
+
+
+def build_db(records: list[dict], *, skills_dir: Path, md_path: Path,
+             html_path: Path, old_db: dict, now: str,
+             collection: str = "") -> dict:
+    """Wrap the records into the database document, keeping timestamps stable."""
+    statuses = {lang: {STATUS_OK: 0, STATUS_STALE: 0, STATUS_UNTRANSLATED: 0}
+                for lang in SUPPORTED_LANGS}
+    for rec in records:
+        locales = rec.get("locales") or {}
+        for lang in SUPPORTED_LANGS:
+            status = (locales.get(lang) or {}).get("status") or STATUS_UNTRANSLATED
+            statuses[lang][status] = statuses[lang].get(status, 0) + 1
+
+    db = {
+        "schema": DB_SCHEMA,
+        "generated_at": now,
+        "skills_dir": str(skills_dir),
+        "collection": collection,
+        "outputs": {"markdown": str(md_path), "html": str(html_path),
+                    "database": str(db_path_for(md_path))},
+        "exclude": sorted(EXCLUDE_DIR_NAMES) + list(EXCLUDE_FILE_PATTERNS),
+        "stats": {
+            "skills": len(records),
+            "with_prompts": sum(1 for r in records if r.get("prompts")),
+            "locale_status": statuses,
+        },
+        "skills": records,
+        "_doc": DOC,
+    }
+    # The document is a fixed point: the timestamp only moves when the payload
+    # does, so an unchanged run rewrites the very same bytes.
+    old_skills = json.dumps(old_db.get("skills") or [], sort_keys=True,
+                            ensure_ascii=False)
+    new_skills = json.dumps(records, sort_keys=True, ensure_ascii=False)
+    if old_db and old_skills == new_skills and old_db.get("generated_at"):
+        db["generated_at"] = old_db["generated_at"]
+    return db
+
+
+DOC = {
+    "purpose": (
+        "Database of the skill index: one record per skill, carrying the file "
+        "inventory used for incremental rebuilds and the prose of every "
+        "language. The Markdown index and the HTML page are rendered from it."
+    ),
+    "generated_by": "yashi-build-skills-index (scripts/build_skills_index.py)",
+    "fields": {
+        "collection": ("title of the human-readable index, fixed when the "
+                       "database is created so local runs and CI agree"),
+        "description": "verbatim front-matter description of the skill's SKILL.md",
+        "description_hash": "hash of that description; a change rewrites the source prose",
+        "files": "path, size and UTC mtime of every file in the skill folder",
+        "files_hash": "hash of that file list; the basis of the incremental rebuild",
+        "source_stamp": "size:mtime of SKILL.md, the source the prose is written against",
+        "prompts": "example prompts, mirrored from scripts/assets/skill-examples.json",
+        "locales": ("purpose + use_when per language; src_hash and source_stamp "
+                    "are the description hash and the SKILL.md stamp the text was "
+                    "reviewed against, text_hash notices hand edits (an edited "
+                    "text counts as reviewed)"),
+        "status": "ok | stale (upstream moved, review the text) | untranslated",
+        "added_at / updated_at": "first and last time this record changed",
+        "generated_at": "last time the payload changed, not the last run",
+    },
+    "editing": (
+        "Edit the prose here (or translate the --emit-draft file), then rerun; "
+        "--rebuild rewrites every source-language text and marks all "
+        "translations for review, --mark-reviewed confirms pending reviews "
+        "without touching the text."
+    ),
+}
+
+
+def seed_source_from_markdown(md_path: Path) -> dict[str, dict]:
+    """Recover source-language prose from a rendered Markdown index.
+
+    Hand-polished wording lives in that file, so reading it once is how an index
+    built by an older version of this script migrates into the database.
+    """
+    seed: dict[str, dict] = {}
+    if not md_path.is_file():
+        return seed
+    try:
         for b in parse_markdown_index(md_path.read_text(encoding="utf-8")):
-            base = by_dir.get(b["dir"])
-            if base is None:
-                continue  # skill directory is gone: drop it from the page
-            blocks.append({
-                "dir": base["dir"],
-                "name": base["name"],
-                "purpose": b["purpose"] or base["purpose"],
-                "bullets": b["bullets"] or base["bullets"],
-            })
-            seen.add(base["dir"])
-    for b in heuristic:
-        if b["dir"] in seen:
-            continue
-        blocks.append(dict(b))
+            if not (b.get("purpose") or "").strip():
+                continue
+            seed[b.get("dir") or b["name"]] = {
+                "purpose": b["purpose"], "bullets": list(b.get("bullets") or [])}
+    except OSError:  # pragma: no cover - unreadable file
+        pass
+    return seed
 
-    for b in blocks:
-        b["src_hash"] = desc_hash.get(b["dir"], "")
+
+def seed_localized_from_html(html_path: Path, lang: str) -> dict[str, dict]:
+    """Recover translated prose from a rendered HTML page, keyed by skill name.
+
+    Cards the page itself marked as untranslated are dropped: the renderer shows
+    the source-language fallback there, not a translation, and seeding it would
+    silently turn "not translated yet" into "translated".
+    """
+    if not html_path.is_file():
+        return {}
+    try:
+        recovered = parse_html_index(html_path.read_text(encoding="utf-8"), lang)
+    except OSError:  # pragma: no cover - unreadable file
+        return {}
+    return {name: entry for name, entry in recovered.items()
+            if entry.get("status") != STATUS_UNTRANSLATED}
+
+
+def locale_seed_from_db(db: dict, lang: str) -> dict[str, dict]:
+    """Recover one language's prose from another database (subset seeding).
+
+    A filtered run keeps its own database file; this is how a fresh one borrows
+    the translations of the full index instead of starting untranslated.
+    """
+    seed: dict[str, dict] = {}
+    for rec in normalize_db(db).values():
+        loc = (rec.get("locales") or {}).get(lang)
+        if not isinstance(loc, dict) or not (loc.get("purpose") or "").strip():
+            continue
+        seed[rec.get("name") or rec["dir"]] = {
+            "purpose": loc["purpose"],
+            "bullets": list(loc.get("use_when") or []),
+            "src_hash": loc.get("src_hash") or rec.get("description_hash", ""),
+            "status": loc.get("status") or STATUS_OK,
+        }
+    return seed
+
+
+def merge_seed_tables(primary: dict[str, dict],
+                      secondary: dict[str, dict]) -> dict[str, dict]:
+    """Overlay two seed tables; entries already present in `primary` win."""
+    merged = dict(secondary)
+    merged.update(primary)
+    return merged
+
+
+def blocks_for_lang(records: list[dict], lang: str) -> list[dict]:
+    """Project records into the render shape (dir/name/purpose/bullets/status).
+
+    A skill without prose in the requested language falls back to the source
+    language and is reported as untranslated, so a page never shows a hole.
+    """
+    blocks: list[dict] = []
+    for rec in records:
+        locales = rec.get("locales") or {}
+        loc = locales.get(lang) if isinstance(locales.get(lang), dict) else {}
+        fallback = locales.get(SOURCE_LANG) if isinstance(
+            locales.get(SOURCE_LANG), dict) else {}
+        loc_purpose = (loc.get("purpose") or "").strip()
+        purpose = loc_purpose or (fallback.get("purpose") or "").strip()
+        bullets = list(loc.get("use_when") or []) or list(fallback.get("use_when") or [])
+        status = loc.get("status") or STATUS_OK
+        if not loc_purpose:
+            status = STATUS_UNTRANSLATED
+        blocks.append({
+            "dir": rec["dir"],
+            "name": rec["name"],
+            "purpose": purpose,
+            "bullets": bullets,
+            "status": status,
+            # The hash this slot's text was checked against -- not the current
+            # description hash. Writing the current one would make a stale or
+            # missing translation look current as soon as the page is read back.
+            "src_hash": (loc.get("src_hash") or "") if loc_purpose else "",
+            "prompts": list(rec.get("prompts") or []),
+        })
     return blocks
+
+
+def locale_previous(records: list[dict], lang: str) -> dict[str, dict]:
+    """Stored prose of one language, in the shape render_draft expects."""
+    out: dict[str, dict] = {}
+    for rec in records:
+        loc = (rec.get("locales") or {}).get(lang) or {}
+        if not (loc.get("purpose") or "").strip():
+            continue
+        out[rec["name"]] = {
+            "name": rec["name"],
+            "dir": rec["dir"],
+            "purpose": loc.get("purpose", ""),
+            "bullets": list(loc.get("use_when") or []),
+            "src_hash": loc.get("src_hash") or rec.get("description_hash", ""),
+            "status": loc.get("status") or STATUS_OK,
+        }
+    return out
+
+
+def merge_draft_records(records: list[dict], draft_blocks: list[dict], lang: str,
+                        source_blocks: list[dict]) -> int:
+    """Fold a hand-edited translation draft back into the records.
+
+    Only text that really differs from what the database holds counts as an
+    edit; entries the draft merely carried along stay untouched and keep their
+    review flag. Returns how many slots were updated.
+    """
+    draft = {b["name"]: b for b in draft_blocks}
+    source = {b["name"]: b for b in source_blocks}
+    updated = 0
+    for rec in records:
+        d = draft.get(rec["name"])
+        if not d:
+            continue
+        src = source.get(rec["name"], {"purpose": "", "bullets": []})
+        if not _draft_is_translated(d, src):
+            continue
+        purpose = (d.get("purpose") or "").strip()
+        bullets = [str(b).strip() for b in (d.get("bullets") or []) if str(b).strip()]
+        if not purpose:
+            continue
+        locales = rec.setdefault("locales", {})
+        loc = locales.get(lang) if isinstance(locales.get(lang), dict) else {}
+        if purpose == (loc.get("purpose") or "") and bullets == list(loc.get("use_when") or []):
+            continue
+        loc.update({
+            "purpose": purpose,
+            "use_when": bullets,
+            "status": STATUS_OK,
+            "src_hash": rec.get("description_hash", ""),
+            "source_stamp": rec.get("source_stamp", ""),
+            "text_hash": locale_text_hash(purpose, bullets),
+        })
+        locales[lang] = loc
+        updated += 1
+    return updated
+
 
 
 CARD_RE = re.compile(
@@ -1109,43 +1737,6 @@ def _draft_is_translated(draft_entry: dict, source: dict) -> bool:
     return draft_entry.get("status") != STATUS_UNTRANSLATED
 
 
-def merge_localized(source_blocks: list[dict], draft_blocks: list[dict],
-                    previous: dict[str, dict]) -> list[dict]:
-    """Combine source blocks with the best available localized prose."""
-    draft = {b["name"]: b for b in draft_blocks}
-    merged: list[dict] = []
-    for b in source_blocks:
-        entry = dict(b)
-        localized: dict | None = None
-        marker = ""
-        d = draft.get(b["name"])
-        p = previous.get(b["name"])
-        if d and _draft_is_translated(d, b):
-            # Prose taken from the draft was reviewed against the current
-            # source, so the entry is stamped with the current hash; the status
-            # marker decides whether the review still has to be confirmed.
-            localized = d
-            marker = d.get("status", STATUS_OK)
-        elif p and p.get("purpose") and p.get("status") != STATUS_UNTRANSLATED:
-            localized = p
-            # Sticky review flag: it is raised when the stored hash no longer
-            # matches the upstream description, and it survives further renders
-            # until a draft pass confirms the translation.
-            if p.get("status") == STATUS_STALE or (
-                p.get("src_hash") and p["src_hash"] != b["src_hash"]
-            ):
-                marker = STATUS_STALE
-                entry["src_hash"] = p.get("src_hash") or b["src_hash"]
-        if localized:
-            entry["purpose"] = localized["purpose"] or b["purpose"]
-            entry["bullets"] = localized["bullets"] or b["bullets"]
-            entry["status"] = STATUS_STALE if marker == STATUS_STALE else STATUS_OK
-        else:
-            entry["status"] = STATUS_UNTRANSLATED
-        merged.append(entry)
-    return merged
-
-
 def status_counts(blocks: list[dict]) -> dict[str, int]:
     counts = {STATUS_OK: 0, STATUS_STALE: 0, STATUS_UNTRANSLATED: 0}
     for b in blocks:
@@ -1168,14 +1759,14 @@ def slug(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.\-]+", "-", name)
 
 
-def search_text(block: dict, examples: dict[str, list[str]]) -> str:
+def search_text(block: dict) -> str:
     """Haystack for the client-side filter: name, prose and example prompts.
 
     Examples are included on purpose, so that searching for a phrase that only
     appears in one of them still finds the skill.
     """
     parts = [block["name"], block["purpose"], *block["bullets"],
-             *examples.get(block["name"], [])]
+             *(block.get("prompts") or [])]
     return " ".join(parts).lower()
 
 
@@ -1240,7 +1831,8 @@ def report_examples(blocks: list[dict], examples: dict[str, list[str]],
     are not part of this index at all.
     """
     names = [b["name"] for b in blocks]
-    missing = [n for n in names if not examples.get(n)]
+    own = {b["name"]: (b.get("prompts") or []) for b in blocks}
+    missing = [n for n in names if not own.get(n)]
     known = set(all_names) if all_names is not None else set(names)
     unmatched = sorted(set(examples) - known)
     stale = unmatched if canonical else []
@@ -1268,7 +1860,6 @@ def render_html(blocks: list[dict], skills_dir: Path, lang: str,
                 html_path: Path | None = None) -> str:
     strings = STRINGS[lang]
     categories = strings["categories"]
-    examples = load_examples()
 
     grouped: dict[str, list[dict]] = {c: [] for c in CATEGORY_ORDER}
     for b in blocks:
@@ -1307,7 +1898,7 @@ def render_html(blocks: list[dict], skills_dir: Path, lang: str,
         )
         for b in items:
             s = slug(b["name"])
-            hay = search_text(b, examples)
+            hay = search_text(b)
             sidebar.append(
                 f'<a class="sidebar-link" href="#{s}" '
                 f'data-text="{html_mod.escape(hay, quote=True)}">'
@@ -1330,7 +1921,7 @@ def render_html(blocks: list[dict], skills_dir: Path, lang: str,
         for b in items:
             s = slug(b["name"])
             shown, folder_uri = location_display(skills_dir, html_path, b["dir"])
-            hay = search_text(b, examples)
+            hay = search_text(b)
             status = b.get("status", STATUS_OK)
             cls = "skill-card"
             note = ""
@@ -1358,7 +1949,7 @@ def render_html(blocks: list[dict], skills_dir: Path, lang: str,
                 li_cls = ' class="placeholder"' if status == STATUS_UNTRANSLATED else ""
                 main.append(f"<li{li_cls}>{inline_html(bullet)}</li>")
             main.append('</ul></div>')
-            prompts = examples.get(b["name"], [])
+            prompts = list(b.get("prompts") or [])
             if prompts:
                 main.append(
                     f'<div class="examples" data-copy-label="'
@@ -1430,7 +2021,8 @@ def force_utf8_streams() -> None:
 
 
 def report_translation(blocks: list[dict], html_lang: str,
-                       draft_path: Path, prefix: str = "translation") -> None:
+                       draft_path: Path, db_path: Path | None = None,
+                       prefix: str = "translation") -> None:
     """Print how much of the page is localized in the HTML language."""
     counts = status_counts(blocks)
     if not counts[STATUS_STALE] and not counts[STATUS_UNTRANSLATED]:
@@ -1444,8 +2036,33 @@ def report_translation(blocks: list[dict], html_lang: str,
     print(f"{prefix}: {counts[STATUS_OK]} localized, "
           f"{counts[STATUS_STALE]} need review, "
           f"{counts[STATUS_UNTRANSLATED]} untranslated: {shown}", file=sys.stderr)
-    print(f"{prefix}: edit the draft ({draft_path}) after --emit-draft, then "
-          f"rerun --html-only to localize them into {html_lang}", file=sys.stderr)
+    where = f"the database ({db_path})" if db_path else "the database"
+    print(f"{prefix}: edit {where} -- or the draft ({draft_path}) written by "
+          f"--emit-draft -- then rerun to localize them into {html_lang}",
+          file=sys.stderr)
+
+
+def report_sync(states: dict[str, str], prefix: str = "sync") -> None:
+    """Print what the incremental comparison decided, one bucket per state."""
+    order = (STATE_UNCHANGED, STATE_NEW, STATE_REBUILD, STATE_SRC_CHANGED,
+             STATE_SOURCE_CHANGED, STATE_FILES_CHANGED)
+    buckets: dict[str, list[str]] = {}
+    for directory, state in states.items():
+        buckets.setdefault(state, []).append(directory)
+    parts: list[str] = []
+    for state in order:
+        items = sorted(buckets.get(state) or [])
+        if not items:
+            continue
+        if state == STATE_UNCHANGED:
+            parts.append(f"{len(items)} unchanged")
+            continue
+        shown = ", ".join(items[:10])
+        if len(items) > 10:
+            shown += f", ... (+{len(items) - 10} more)"
+        parts.append(f"{len(items)} {state} ({shown})")
+    if parts:
+        print(f"{prefix}: " + "; ".join(parts), file=sys.stderr)
 
 
 def consume_draft(draft_path: Path, keep: bool) -> None:
@@ -1458,6 +2075,112 @@ def consume_draft(draft_path: Path, keep: bool) -> None:
     except OSError as exc:
         print(f"warning: could not remove the draft {draft_path}: {exc}",
               file=sys.stderr)
+
+
+# ---------------------------------------------------------------------------
+# Continuous-integration hand-off
+# ---------------------------------------------------------------------------
+
+# A workflow that mentions the script (or the skill) counts as the index's
+# generator: the repository installed the action so the files are rebuilt in CI,
+# and a local run only has to maintain the database.
+CI_MARKERS = ("build_skills_index.py", "yashi-build-skills-index")
+WORKFLOW_SUFFIXES = (".yml", ".yaml")
+
+
+def first_existing_dir(path: Path) -> Path:
+    """Nearest existing directory at or above `path`, for the CI search."""
+    current = path
+    for _ in range(64):
+        if current.is_dir():
+            return current
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+    return path
+
+
+# How far above the index the workflow search may look. The action lives in the
+# repository root, so a couple of levels cover a subdirectory layout; the bound
+# also keeps an unrelated workflow far up the tree from hijacking the run.
+CI_SEARCH_DEPTH = 4
+
+
+def _workflow_runs_this_index(path: Path) -> bool:
+    """True when a workflow file really calls this script.
+
+    Comments are stripped first: a lint workflow that merely mentions the skill
+    in a note must not take over the index.
+    """
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:  # pragma: no cover - unreadable file
+        return False
+    for line in text.splitlines():
+        code = line.split("#", 1)[0]
+        if any(marker in code for marker in CI_MARKERS):
+            return True
+    return False
+
+
+def find_ci_workflow(start: Path) -> Path | None:
+    """Return the workflow that renders this index, when the tree has one.
+
+    The search walks up from the index location (bounded by CI_SEARCH_DEPTH and
+    by the repository root) looking for a `.github/workflows/*.yml` that calls
+    this script, so a repository can install the action once and let it own the
+    generated files. No file name is assumed, and nothing outside the repository
+    is considered.
+    """
+    base = first_existing_dir(start)
+    for depth, directory in enumerate((base, *base.parents)):
+        if depth > CI_SEARCH_DEPTH:
+            break
+        workflows = directory / ".github" / "workflows"
+        if workflows.is_dir():
+            for candidate in sorted(workflows.iterdir()):
+                if (candidate.suffix.lower() in WORKFLOW_SUFFIXES
+                        and _workflow_runs_this_index(candidate)):
+                    return candidate
+        if (directory / ".git").exists():
+            break  # repository root: never look further up
+    return None
+
+
+def warn_filtered_overwrite(md_path: Path, entries: list[SkillEntry],
+                            full_md: Path, full_html: Path, html_path: Path,
+                            db_path: Path) -> None:
+    """Warn when a filtered run would shrink an existing index in place.
+
+    The fixed global paths are reported first. Beyond them the file itself is
+    read: an index that already lists skills this run does not scan would lose
+    those entries, whether it lives in the global directory or in a repository.
+    """
+    for label, target, full in (("--output", md_path, full_md),
+                                ("--html", html_path, full_html),
+                                ("--db", db_path, db_path_for(full_md))):
+        if target == full:
+            print(f"warning: {label} points at the full index ({full}) while "
+                  f"--include is active; the complete index will be replaced by "
+                  f"this filtered one", file=sys.stderr)
+    selected = {e.directory for e in entries}
+    if not md_path.is_file():
+        return
+    try:
+        existing = {b.get("dir") or b["name"]
+                    for b in parse_markdown_index(md_path.read_text(encoding="utf-8"))}
+    except OSError:  # pragma: no cover - unreadable file
+        return
+    dropped = existing - selected
+    if not dropped:
+        return
+    shown = ", ".join(sorted(dropped)[:5])
+    if len(dropped) > 5:
+        shown += ", ..."
+    print(f"warning: {md_path} lists {len(existing)} skill(s) while this filtered "
+          f"run writes {len(selected)}; {len(dropped)} existing entry(ies) would "
+          f"be dropped: {shown}", file=sys.stderr)
 
 
 def parse_include(values: list[str] | None) -> list[str]:
@@ -1539,13 +2262,26 @@ def resolve_md_defaults(args: argparse.Namespace,
 def main() -> int:
     force_utf8_streams()
     ap = argparse.ArgumentParser(
-        description="Generate or update the global skill index "
-                    "(~/.agents/SKILLS.md and SKILLS.html)."
+        description="Generate or update the skill index: the JSON database "
+                    "(~/.agents/SKILLS.json), the Markdown index "
+                    "(~/.agents/SKILLS.md) and the HTML page "
+                    "(~/.agents/SKILLS.html), rebuilding only what changed."
     )
     ap.add_argument(
         "--skills-dir",
-        default=Path(DEFAULT_SKILLS_DIR).expanduser(),
-        help=f"Directory containing skill folders (default: {DEFAULT_SKILLS_DIR})",
+        default=None,
+        help=f"Directory containing skill folders (default: {DEFAULT_SKILLS_DIR}, "
+             f"or the directory recorded in the database under --render-only)",
+    )
+    ap.add_argument(
+        "--collection",
+        default=None,
+        metavar="NAME",
+        help="Name of this skill collection, used in the human-readable title "
+             "(usually the repository name). Defaults to the value recorded in "
+             "the database, then to the skills directory's parent folder. Set it "
+             "once when the database is created, so a local run and a CI "
+             "checkout -- whose folder names differ -- render the same title",
     )
     ap.add_argument(
         "--output",
@@ -1565,6 +2301,34 @@ def main() -> int:
              "--output path with an .html suffix when --output is given",
     )
     ap.add_argument(
+        "--db",
+        default=None,
+        help="JSON database file (name and location). Default: the Markdown "
+             "index path with a .json suffix, i.e. "
+             f"{Path(DEFAULT_MD_PATH).with_suffix(DB_SUFFIX)}. The database is "
+             "written first and is the single carrier of the prose and of the "
+             "file inventory; --output and --html are rendered from it.",
+    )
+    ap.add_argument(
+        "--db-only",
+        action="store_true",
+        help="Update the database only and skip the generated files; used in a "
+             "repository where the action renders them (see also --ignore-ci)",
+    )
+    ap.add_argument(
+        "--render-only",
+        action="store_true",
+        help="Render the outputs from the existing database without scanning "
+             "the skills directory or touching the database; fails when there "
+             "is no database yet. This is what CI runs.",
+    )
+    ap.add_argument(
+        "--ignore-ci",
+        action="store_true",
+        help="Do not look for a workflow that renders this index; write the "
+             "generated files even in a repository that has the action",
+    )
+    ap.add_argument(
         "--include", action="append", default=None, metavar="GLOB",
         help="Only index the skills whose directory name matches this glob "
              "(repeatable, comma-separated lists also accepted), e.g. "
@@ -1576,9 +2340,9 @@ def main() -> int:
     ap.add_argument(
         "--html-only",
         action="store_true",
-        help="Rebuild the HTML without touching the Markdown index (used "
-             "after hand polishing: the page wording comes from the Markdown "
-             "index and from the translation draft, if any)",
+        help="Skip the Markdown output and only rebuild the database and the "
+             "HTML page (used after editing the prose or a translation in the "
+             "database)",
     )
     ap.add_argument("--dry-run", action="store_true",
                     help="Preview without writing files")
@@ -1591,6 +2355,20 @@ def main() -> int:
         "--force",
         action="store_true",
         help="Write outputs even when validation issues were found",
+    )
+    ap.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Ignore the incremental comparison: regenerate every skill's "
+             "source-language prose from its front matter and mark every "
+             "translation for review",
+    )
+    ap.add_argument(
+        "--mark-reviewed",
+        action="store_true",
+        help="Confirm the pending translations (status stale) as reviewed "
+             "without touching their text, e.g. after checking that an upstream "
+             "edit did not affect them",
     )
     ap.add_argument(
         "--md-style", choices=MD_STYLES, default=None, metavar="STYLE",
@@ -1618,11 +2396,12 @@ def main() -> int:
     ap.add_argument(
         "--emit-draft", action="store_true",
         help="Write the translation draft and exit without touching the "
-             "index outputs",
+             "database or the index outputs",
     )
     ap.add_argument(
         "--keep-draft", action="store_true",
-        help="Keep the translation draft after rendering the HTML",
+        help="Keep the translation draft after it has been merged into the "
+             "database",
     )
     args = ap.parse_args()
 
@@ -1630,10 +2409,23 @@ def main() -> int:
         print("error: --html-only and --no-html contradict each other",
               file=sys.stderr)
         return 1
+    if args.db_only and args.render_only:
+        print("error: --db-only and --render-only contradict each other",
+              file=sys.stderr)
+        return 1
+    if args.db_only and args.html_only:
+        print("error: --db-only and --html-only contradict each other",
+              file=sys.stderr)
+        return 1
+    if args.render_only and args.emit_draft:
+        print("error: --render-only renders the stored database and never "
+              "updates it, so it cannot emit a translation draft",
+              file=sys.stderr)
+        return 1
 
-    skills_dir = Path(args.skills_dir).expanduser()
     include = parse_include(args.include)
     md_path, html_path = resolve_outputs(args, include)
+    db_path = Path(args.db).expanduser() if args.db else db_path_for(md_path)
     md_style, md_lang_raw, readme_target = resolve_md_defaults(args, md_path)
     html_lang_raw = args.html_lang or DEFAULT_HTML_LANG
     md_lang = normalize_lang(md_lang_raw)
@@ -1655,174 +2447,269 @@ def main() -> int:
             print(f"note: {md_path.name} is a human-facing index; using "
                   f"{', '.join(derived)}", file=sys.stderr)
 
-    if include:
-        full_md = Path(DEFAULT_MD_PATH).expanduser()
-        full_html = Path(DEFAULT_HTML_PATH).expanduser()
-        for label, target, full in (("--output", md_path, full_md),
-                                    ("--html", html_path, full_html)):
-            if target == full:
-                print(f"warning: {label} points at the full index ({full}) "
-                      f"while --include is active; the complete index will be "
-                      f"replaced by this filtered one", file=sys.stderr)
+    # --render-only makes the database the only input: the skills directory, the
+    # prose of every language and the prompts are all recorded in it.
+    stored_db: dict = {}
+    if args.render_only:
+        stored_db = load_db(db_path)
+        if not normalize_db(stored_db):
+            print(f"error: --render-only needs an existing database: {db_path}\n"
+                  f"Run the full pipeline once (without --render-only) to create "
+                  f"it.", file=sys.stderr)
+            return 1
+    if args.skills_dir:
+        skills_dir = Path(args.skills_dir).expanduser()
+    elif args.render_only and stored_db.get("skills_dir"):
+        skills_dir = Path(stored_db["skills_dir"]).expanduser()
+    else:
+        skills_dir = Path(DEFAULT_SKILLS_DIR).expanduser()
+
+    # The collection name is part of the rendered title. A database records the
+    # name it was created with, so a local run and a CI checkout -- whose folder
+    # names differ -- still render the very same file. A blank --collection means
+    # "keep what is recorded" rather than "forget it".
+    requested_collection = (args.collection or "").strip()
+    if requested_collection:
+        collection = requested_collection
+    elif args.render_only:
+        collection = stored_db.get("collection") or ""
+    elif db_path.is_file():
+        collection = load_db(db_path).get("collection") or ""
+    else:
+        collection = ""
+
+    # CI hand-off: a repository that installs the action lets it own the
+    # generated files, so a plain local run only maintains the database. The
+    # workflow is looked for next to the index and next to the skills it indexes;
+    # a dry run or a check changes nothing and keeps its own report.
+    db_only = args.db_only
+    if not args.ignore_ci and not args.db_only and not args.render_only:
+        workflow = find_ci_workflow(md_path.parent) or find_ci_workflow(skills_dir)
+        if workflow is not None and not args.check and not args.dry_run:
+            db_only = True
+            print(f"note: {workflow} renders this index; updating the database "
+                  f"only (pass --ignore-ci to write the files here as well)",
+                  file=sys.stderr)
+
+    full_md = Path(DEFAULT_MD_PATH).expanduser()
+    full_html = Path(DEFAULT_HTML_PATH).expanduser()
+    full_db = db_path_for(full_md)
     draft_path = (Path(args.draft_path).expanduser() if args.draft_path
                   else default_draft_path(html_path, html_lang))
-    # Same language on both sides means the Markdown wording is already the
-    # final wording: no draft and no carry-over are involved.
-    needs_translation = html_lang != md_lang
+    # Translations are written into the HTML language; the source language needs
+    # no draft, because it is generated from the front matter.
+    needs_translation = html_lang != SOURCE_LANG
 
-    if not skills_dir.is_dir():
-        print(f"error: skills directory not found: {skills_dir}", file=sys.stderr)
-        return 1
-
-    entries = discover_skills(skills_dir)
-    all_names = [e.directory for e in entries]
-    if include:
-        entries = select_entries(entries, include)
-        if not entries:
-            print(f"error: --include matched no skill out of {len(all_names)}. "
-                  f"Patterns: {', '.join(include)}", file=sys.stderr)
-            return 1
-        print(f"include: {len(entries)} of {len(all_names)} skill(s) match "
-              f"{', '.join(include)}", file=sys.stderr)
-    issues = validate(entries)
-
-    if issues:
-        print("Validation issues found (not guessing; resolve before indexing):",
-              file=sys.stderr)
-        for issue in issues:
-            print(f"  - {issue}", file=sys.stderr)
-        print(file=sys.stderr)
-
-    heuristic = prepare(entries)
-
-    # Prose source: the wording the previous index carries (so hand-polished
-    # text survives a rebuild), the front-matter heuristic for skills missing
-    # from it. The AI index stays a pure derivative of the front matter, while
-    # the human index is a document people edit, and therefore converges on its
-    # own text.
-    source_blocks = load_source_blocks(entries, md_path)
-    expected_md = (render_markdown_human(source_blocks, md_lang, skills_dir, md_path)
-                   if md_style == "human"
-                   else render_markdown(heuristic, md_lang))
-
-    previous = (parse_html_index(html_path.read_text(encoding="utf-8"), html_lang)
-                if html_path.is_file() else {})
-    # A filtered page is a separate file, so it has no translation history of its
-    # own on the first run. Recover the prose from the full index instead, or the
-    # subset would render in the source language while the full page is localized.
-    full_html_path = Path(DEFAULT_HTML_PATH).expanduser()
-    if not args.no_html and html_path != full_html_path and full_html_path.is_file():
-        seed = parse_html_index(full_html_path.read_text(encoding="utf-8"), html_lang)
-        seeded = 0
-        for name, entry in seed.items():
-            if name not in previous:
-                previous[name] = entry
-                seeded += 1
-        if seeded:
-            print(f"seed: recovered {seeded} entr(ies) from {full_html_path}",
+    entries: list[SkillEntry] = []
+    all_names: list[str] = []
+    issues: list[str] = []
+    if not args.render_only:
+        if not skills_dir.is_dir():
+            print(f"error: skills directory not found: {skills_dir}",
                   file=sys.stderr)
-    draft_blocks = (parse_markdown_index(draft_path.read_text(encoding="utf-8"))
-                    if draft_path.is_file() else [])
-    if needs_translation:
-        blocks = merge_localized(source_blocks, draft_blocks, previous)
+            return 1
+
+        entries = discover_skills(skills_dir)
+        all_names = [e.directory for e in entries]
+        if include:
+            entries = select_entries(entries, include)
+            if not entries:
+                print(f"error: --include matched no skill out of {len(all_names)}. "
+                      f"Patterns: {', '.join(include)}", file=sys.stderr)
+                return 1
+            print(f"include: {len(entries)} of {len(all_names)} skill(s) match "
+                  f"{', '.join(include)}", file=sys.stderr)
+        issues = validate(entries)
+
+        if issues:
+            print("Validation issues found (not guessing; resolve before indexing):",
+                  file=sys.stderr)
+            for issue in issues:
+                print(f"  - {issue}", file=sys.stderr)
+            print(file=sys.stderr)
+
+        if include:
+            warn_filtered_overwrite(md_path, entries, full_md, full_html,
+                                    html_path, db_path)
+
+    if args.render_only:
+        # The database is both the record and the source: nothing is scanned,
+        # nothing is validated, nothing is written back to it.
+        records = list(normalize_db(stored_db).values())
+        if include:
+            records = [rec for rec in records
+                       if any(fnmatch.fnmatchcase(rec.get("dir") or rec.get("name", ""), p)
+                              for p in include)]
+            if not records:
+                print(f"error: --include matched no record in {db_path}. "
+                      f"Patterns: {', '.join(include)}", file=sys.stderr)
+                return 1
+            print(f"include: {len(records)} record(s) selected from {db_path}",
+                  file=sys.stderr)
+        states: dict[str, str] = {}
+        all_names = [rec["dir"] for rec in records]
+        examples = load_examples()
+        draft_blocks: list[dict] = []
+        new_db = stored_db
+        db_text = ""
     else:
-        blocks = [{**b, "status": STATUS_OK} for b in source_blocks]
-    # Example-prompt coverage is reported whenever examples reach an output:
-    # the HTML page, or a human Markdown index.
-    if not args.emit_draft and (not args.no_html or md_style == "human"):
-        # Only a scan of the canonical skills directory can judge an unmatched
-        # example key as stale (see report_examples).
-        canonical = False
-        try:
-            canonical = skills_dir.resolve() == Path(DEFAULT_SKILLS_DIR).expanduser().resolve()
-        except OSError:  # pragma: no cover - unusable path
-            canonical = False
-        report_examples(blocks, load_examples(), all_names, canonical=canonical)
-    expected_html = (render_html(blocks, skills_dir, html_lang, html_path)
+        prepared = prepare(entries)
+        examples = load_examples()
+        old_db = load_db(db_path)
+        stored = normalize_db(old_db)
+
+        # A database that does not exist yet is seeded from the previous
+        # outputs, so an index built by an older version of this script
+        # migrates without losing the wording somebody may have polished.
+        source_seed: dict[str, dict] = {}
+        localized_seed: dict[str, dict] = {}
+        if not stored:
+            if md_path.is_file():
+                source_seed = merge_seed_tables(
+                    source_seed, seed_source_from_markdown(md_path))
+            if html_path.is_file():
+                localized_seed = merge_seed_tables(
+                    localized_seed, seed_localized_from_html(html_path, html_lang))
+            if md_path != full_md and full_md.is_file():
+                source_seed = merge_seed_tables(
+                    source_seed, seed_source_from_markdown(full_md))
+            # The full database is a better source than the full page: it
+            # carries the review state of every slot, while a page only carries
+            # what it rendered. The target's own outputs stay the most relevant
+            # source, so they are merged first and win.
+            if full_db != db_path and full_db.is_file():
+                shared = load_db(full_db)
+                source_seed = merge_seed_tables(
+                    source_seed, locale_seed_from_db(shared, SOURCE_LANG))
+                localized_seed = merge_seed_tables(
+                    localized_seed, locale_seed_from_db(shared, html_lang))
+            if full_html.is_file():
+                localized_seed = merge_seed_tables(
+                    localized_seed, seed_localized_from_html(full_html, html_lang))
+            # Only the skills this run scans are worth seeding; a seed for
+            # anything else is noise (a foreign index) or a skill that is gone.
+            wanted_dirs = {e.directory for e in entries}
+            wanted_names = {e.name or e.directory for e in entries}
+            source_seed = {k: v for k, v in source_seed.items() if k in wanted_dirs}
+            localized_seed = {
+                k: v for k, v in localized_seed.items() if k in wanted_names}
+            if source_seed or localized_seed:
+                print(f"seed: {len(source_seed)} source and "
+                      f"{len(localized_seed)} localized entr(ies) recovered from "
+                      f"the previous outputs (the database is new)",
+                      file=sys.stderr)
+
+        now = now_local_iso()
+        records, states = sync_records(
+            entries, prepared, old_db, rebuild=args.rebuild,
+            mark_reviewed=args.mark_reviewed, source_seed=source_seed,
+            localized_seed=localized_seed, examples=examples, now=now)
+
+        # --emit-draft: produce the temporary translation draft, write nothing
+        # else.
+        if args.emit_draft:
+            if not needs_translation:
+                print(f"note: --html-lang ({html_lang}) is the source language; "
+                      f"no translation draft is needed", file=sys.stderr)
+                return 0
+            draft_text = render_draft(blocks_for_lang(records, SOURCE_LANG),
+                                      locale_previous(records, html_lang), html_lang)
+            draft_path.parent.mkdir(parents=True, exist_ok=True)
+            unchanged = (draft_path.is_file()
+                         and draft_path.read_text(encoding="utf-8") == draft_text)
+            draft_path.write_text(draft_text, encoding="utf-8", newline="\n")
+            print(f"{draft_path} {'already up to date' if unchanged else 'written'}"
+                  f" ({len(records)} entries, language: {html_lang})")
+            report_translation(blocks_for_lang(records, html_lang), html_lang,
+                               draft_path, db_path)
+            return 0
+
+        # A hand-edited translation draft (--emit-draft) is folded back in
+        # before anything is rendered.
+        draft_blocks = (parse_markdown_index(draft_path.read_text(encoding="utf-8"))
+                        if draft_path.is_file() else [])
+        if draft_blocks:
+            merged = merge_draft_records(records, draft_blocks, html_lang,
+                                         blocks_for_lang(records, SOURCE_LANG))
+            if merged:
+                print(f"draft: {merged} entr(ies) merged from {draft_path}",
+                      file=sys.stderr)
+
+        # Records this run did not scan survive a filtered run; on a full scan
+        # they are simply gone, and dropping them is the point.
+        scanned = {e.directory for e in entries}
+        kept = ([rec for d, rec in stored.items() if d not in scanned]
+                if include else [])
+        gone = (sorted(d for d in stored if d not in scanned)
+                if not include else [])
+        if kept:
+            print(f"db: kept {len(kept)} record(s) outside this filtered scan",
+                  file=sys.stderr)
+        if gone:
+            shown = ", ".join(gone[:10]) + (", ..." if len(gone) > 10 else "")
+            print(f"db: dropped {len(gone)} record(s) whose skill is gone: {shown}",
+                  file=sys.stderr)
+
+        all_records = records + kept
+        new_db = build_db(all_records, skills_dir=skills_dir, md_path=md_path,
+                          html_path=html_path, old_db=old_db, now=now,
+                          collection=collection)
+        db_text = dump_db(new_db)
+
+    md_blocks = blocks_for_lang(records, md_lang)
+    html_blocks = blocks_for_lang(records, html_lang)
+    report_sync(states)
+
+    expected_md = (render_markdown_human(md_blocks, md_lang, skills_dir, md_path,
+                                         collection or None)
+                   if md_style == "human"
+                   else render_markdown(md_blocks, md_lang, skills_dir, md_path))
+    expected_html = (render_html(html_blocks, skills_dir, html_lang, html_path)
                      if not args.no_html else "")
 
-    # --emit-draft: produce the temporary translation draft, write nothing else.
-    if args.emit_draft:
-        if not needs_translation:
-            print(f"note: --html-lang ({html_lang}) equals --md-lang "
-                  f"({md_lang}); no translation draft is needed", file=sys.stderr)
-            return 0
-        draft_text = render_draft(source_blocks, previous, html_lang)
-        draft_path.parent.mkdir(parents=True, exist_ok=True)
-        unchanged = (draft_path.is_file()
-                     and draft_path.read_text(encoding="utf-8") == draft_text)
-        draft_path.write_text(draft_text, encoding="utf-8", newline="\n")
-        print(f"{draft_path} {'already up to date' if unchanged else 'written'}"
-              f" ({len(source_blocks)} entries, language: {html_lang})")
-        report_translation(
-            merge_localized(source_blocks, parse_markdown_index(draft_text), previous),
-            html_lang, draft_path)
-        return 0
+    # Example-prompt coverage is reported whenever examples reach an output:
+    # the HTML page, or a human Markdown index.
+    if not args.no_html or md_style == "human":
+        canonical = False
+        try:
+            canonical = (skills_dir.resolve()
+                         == Path(DEFAULT_SKILLS_DIR).expanduser().resolve())
+        except OSError:  # pragma: no cover - unusable path
+            canonical = False
+        report_examples(md_blocks, examples, all_names, canonical=canonical)
 
-    # --html-only: rebuild the page, leaving the Markdown index alone.
-    if args.html_only:
-        if not md_path.is_file():
-            print(f"error: markdown index not found: {md_path}; run without "
-                  f"--html-only first", file=sys.stderr)
-            return 1
+    def current_text(path: Path) -> str:
+        return path.read_text(encoding="utf-8") if path.is_file() else ""
 
-        if args.check:
-            if not html_path.is_file() or html_path.read_text(encoding="utf-8") != expected_html:
-                print(f"check: {html_path} is missing or out of date", file=sys.stderr)
-                return 3
-            if needs_translation:
-                report_translation(blocks, html_lang, draft_path)
-            print(f"check: {html_path} is up to date ({len(blocks)} skills)")
-            return 0
-
-        if args.dry_run:
-            print(f"[dry-run] would write {html_path} "
-                  f"({len(blocks)} skills, {len(issues)} issue(s), "
-                  f"language: {html_lang})", file=sys.stderr)
-            if needs_translation:
-                report_translation(blocks, html_lang, draft_path)
-            return 0
-
-        html_path.parent.mkdir(parents=True, exist_ok=True)
-        unchanged = html_path.is_file() and html_path.read_text(encoding="utf-8") == expected_html
-        html_path.write_text(expected_html, encoding="utf-8", newline="\n")
-        print(f"{html_path} {'already up to date' if unchanged else 'written'}"
-              f" ({len(blocks)} skills, language: {html_lang})")
-        if needs_translation:
-            report_translation(blocks, html_lang, draft_path)
-            if draft_blocks:
-                consume_draft(draft_path, args.keep_draft)
-        return 0
-
-    # Full pipeline
     if args.check:
         if issues:
             print("check: validation issues exist", file=sys.stderr)
             return 2
         stale = []
-        if not md_path.is_file() or md_path.read_text(encoding="utf-8") != expected_md:
+        if not args.render_only and current_text(db_path) != db_text:
+            stale.append(str(db_path))
+        if not args.html_only and current_text(md_path) != expected_md:
             stale.append(str(md_path))
-        if not args.no_html and (
-            not html_path.is_file() or html_path.read_text(encoding="utf-8") != expected_html
-        ):
+        if not args.no_html and current_text(html_path) != expected_html:
             stale.append(str(html_path))
         if stale:
             print("check: missing or out of date: " + ", ".join(stale),
                   file=sys.stderr)
             return 3
         if needs_translation and not args.no_html:
-            report_translation(blocks, html_lang, draft_path)
-        print(f"check: all outputs up to date ({len(heuristic)} skills)")
+            report_translation(html_blocks, html_lang, draft_path, db_path)
+        print(f"check: all outputs up to date ({len(records)} skills)")
         return 0
 
     if args.dry_run:
         sys.stdout.write(expected_md)
-        msg = f"\n[dry-run] {len(heuristic)} skill folders, {len(issues)} issue(s)"
+        msg = (f"\n[dry-run] {len(records)} skills, {len(issues)} issue(s); "
+               f"db -> {db_path}")
         if not args.no_html:
             msg += f"; html -> {html_path} (language: {html_lang})"
         print(msg, file=sys.stderr)
         if needs_translation and not args.no_html:
-            report_translation(blocks, html_lang, draft_path)
+            report_translation(html_blocks, html_lang, draft_path, db_path)
         return 2 if (issues and not args.force) else 0
 
     if issues and not args.force:
@@ -1830,22 +2717,36 @@ def main() -> int:
               "--force to write partial indexes.", file=sys.stderr)
         return 2
 
-    md_path.parent.mkdir(parents=True, exist_ok=True)
-    md_unchanged = md_path.is_file() and md_path.read_text(encoding="utf-8") == expected_md
-    md_path.write_text(expected_md, encoding="utf-8", newline="\n")
-    print(f"{md_path} {'already up to date' if md_unchanged else 'written'}"
-          f" ({len(heuristic)} skills, {len(issues)} issue(s), language: {md_lang})")
+    if not args.render_only:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        db_unchanged = current_text(db_path) == db_text
+        db_path.write_text(db_text, encoding="utf-8", newline="\n")
+        print(f"{db_path} {'already up to date' if db_unchanged else 'written'}"
+              f" ({len(new_db.get('skills') or [])} records)")
 
-    if not args.no_html:
-        html_path.parent.mkdir(parents=True, exist_ok=True)
-        html_unchanged = html_path.is_file() and html_path.read_text(encoding="utf-8") == expected_html
-        html_path.write_text(expected_html, encoding="utf-8", newline="\n")
-        print(f"{html_path} {'already up to date' if html_unchanged else 'written'}"
-              f" ({len(heuristic)} skills, language: {html_lang})")
-        if needs_translation:
-            report_translation(blocks, html_lang, draft_path)
-            if draft_blocks:
-                consume_draft(draft_path, args.keep_draft)
+    # --db-only (explicit, or implied by a repository that has the action)
+    # maintains the database and leaves the generated files to CI.
+    if not db_only:
+        if not args.html_only:
+            md_path.parent.mkdir(parents=True, exist_ok=True)
+            md_unchanged = current_text(md_path) == expected_md
+            md_path.write_text(expected_md, encoding="utf-8", newline="\n")
+            print(f"{md_path} {'already up to date' if md_unchanged else 'written'}"
+                  f" ({len(records)} skills, language: {md_lang})")
+
+        if not args.no_html:
+            html_path.parent.mkdir(parents=True, exist_ok=True)
+            html_unchanged = current_text(html_path) == expected_html
+            html_path.write_text(expected_html, encoding="utf-8", newline="\n")
+            print(f"{html_path} {'already up to date' if html_unchanged else 'written'}"
+                  f" ({len(records)} skills, language: {html_lang})")
+            if needs_translation:
+                report_translation(html_blocks, html_lang, draft_path, db_path)
+    elif needs_translation:
+        report_translation(html_blocks, html_lang, draft_path, db_path)
+
+    if draft_blocks:
+        consume_draft(draft_path, args.keep_draft)
 
     return 0
 

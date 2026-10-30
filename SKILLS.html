@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill 索引</title>
+<style>/* ============================================================================
+   SKILLS.html stylesheet  --  macaron pink / white / blue
+   ----------------------------------------------------------------------------
+   Source of truth for the page's look. build_skills_index.py reads this file at
+   generation time and inlines it into the page's style element, so the page
+   stays a single self-contained file with no external requests.
+
+   Theming
+   -------
+   Every colour is a custom property on :root. Light values live in :root; dark
+   values live in :root[data-theme="dark"]. The embedded script sets data-theme
+   to "light" or "dark" from <head>, before first paint, so there is no flash.
+   Without JavaScript the attribute is never set and the page renders light.
+
+   Contrast: the pink and blue "ink" tokens are the darker macaron shades and
+   clear 4.5:1 on the panel colour in their own theme; the soft tokens are
+   backgrounds only. Never put --accent-soft / --blue-soft behind body text.
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  --bg: #fdf7fa;
+  --blob-1: #ffe4f0;
+  --blob-2: #e4eeff;
+
+  --panel: #ffffff;
+  --panel-2: #fdf9fb;
+
+  --border: #f2e2ea;
+  --border-hi: #e5cbdb;
+
+  --text: #3a2b36;
+  --muted: #7f6679;
+
+  /* Macaron pink - the primary ink colour. Deep enough to clear 4.5:1 both on
+     white and on --accent-soft; the pastel lives in the backgrounds. */
+  --accent: #b53f74;
+  --accent-soft: #fdeaf2;
+
+  /* Macaron blue - secondary ink, used for counts and folder links. */
+  --blue: #3c629f;
+  --blue-soft: #eaf1fd;
+
+  /* Amber, reserved for "needs review" / "not translated" states. */
+  --warn: #8a5f16;
+  --warn-soft: #fff8ea;
+  --warn-border: #f0d9a8;
+
+  --shadow-sm: 0 1px 3px rgba(178, 122, 152, 0.10);
+  --shadow-md: 0 8px 22px rgba(178, 122, 152, 0.16);
+
+  --radius-card: 14px;
+  --radius-ctl: 10px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #191420;
+  --blob-1: #3a2033;
+  --blob-2: #1e2a44;
+
+  --panel: #241d2c;
+  --panel-2: #2a2233;
+
+  --border: #3a2f42;
+  --border-hi: #57415f;
+
+  --text: #f3e9f0;
+  --muted: #b3a0b1;
+
+  /* Pastel macaron shades, lightened so they read on a dark panel. */
+  --accent: #f2a8c8;
+  --accent-soft: #3b2436;
+
+  --blue: #a6c6f5;
+  --blue-soft: #22304a;
+
+  --warn: #e9c27c;
+  --warn-soft: #33291b;
+  --warn-border: #6b5836;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 22px rgba(0, 0, 0, 0.50);
+}
+
+/* ------------------------------------------------------------------ base -- */
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background-color: var(--bg);
+  /* Two soft macaron blobs: pink top-left, blue top-right. */
+  background-image:
+    radial-gradient(1100px 620px at -8% -12%, var(--blob-1), transparent 62%),
+    radial-gradient(1000px 560px at 108% -6%, var(--blob-2), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--accent-soft); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* --------------------------------------------------------------- layout -- */
+
+.layout { display: flex; align-items: flex-start; }
+
+.sidebar {
+  width: 288px;
+  flex: 0 0 288px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 22px 18px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-count {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 2px 0 14px;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  max-width: 1080px;
+  padding: 30px 34px 72px;
+}
+
+/* ---------------------------------------------------------------- search -- */
+
+#search {
+  width: 100%;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctl);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#search::placeholder { color: var(--muted); }
+
+#search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* --------------------------------------------------------- theme switch -- */
+
+.theme-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctl);
+}
+
+.theme-btn {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-btn:hover { color: var(--text); }
+
+.theme-btn[aria-pressed="true"] {
+  background: var(--panel);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+/* -------------------------------------------------------- sidebar nav -- */
+
+.sidebar-group { margin-bottom: 14px; }
+
+.sidebar-group-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.sidebar-group-count {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 5px 9px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sidebar-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* -------------------------------------------------------------- content -- */
+
+.category-section { margin-bottom: 38px; }
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+
+/* Pink-over-blue macaron bar in front of every category title. Two solid
+   halves rather than a fade: at 4px wide a pink-to-blue gradient muddies
+   through purple in the middle. */
+.category-title::before {
+  content: "";
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg,
+    var(--accent) 0 50%, var(--blue) 50% 100%);
+}
+
+.category-count {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- cards -- */
+
+.skill-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  scroll-margin-top: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.skill-card:hover {
+  border-color: var(--border-hi);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.skill-card.stale { border-color: var(--warn-border); }
+
+.skill-card.untranslated {
+  border-color: var(--warn-border);
+  background: var(--warn-soft);
+}
+
+.skill-name {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--accent);
+}
+
+.trans-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--warn);
+}
+
+.purpose { margin: 0 0 10px; }
+
+.placeholder {
+  color: var(--warn);
+  font-style: italic;
+}
+
+.use-when .label,
+.examples .label,
+.location .label {
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.use-when ul {
+  margin: 4px 0 10px;
+  padding-left: 20px;
+}
+
+.use-when li { margin: 2px 0; }
+
+/* ------------------------------------------------------------- examples -- */
+
+.examples { margin: 0 0 10px; }
+
+.example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example-prompt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.example-prompt:hover {
+  border-color: var(--border-hi);
+  background: var(--accent-soft);
+}
+
+.example-text { flex: 1; min-width: 0; }
+
+.example-copy {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.example-prompt.is-copied .example-copy {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.location code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px 8px;
+  color: var(--text);
+}
+
+.folder-link {
+  margin-left: auto;
+  color: var(--blue);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.folder-link:hover { text-decoration: underline; }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: var(--panel-2);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 0.92em;
+}
+
+/* ----------------------------------------------------------- scrollbars -- */
+
+.sidebar::-webkit-scrollbar { width: 10px; }
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-hi);
+  border: 3px solid var(--panel);
+  border-radius: 999px;
+}
+
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+
+/* ------------------------------------------------------------ responsive -- */
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static;
+    width: 100%;
+    flex-basis: auto;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .content { padding: 20px 16px 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+</style>
+<script>/* ============================================================================
+   SKILLS.html behaviour
+   ----------------------------------------------------------------------------
+   Source of truth for the page's script. build_skills_index.py reads this file
+   at generation time and inlines it into the page head as a script element, so
+   the page stays a single self-contained file with no external requests.
+
+   Why <head>: the theme must be applied before the first paint, otherwise the
+   page flashes the wrong colours. Everything that touches the DOM is deferred
+   to DOMContentLoaded.
+   ========================================================================= */
+
+(function () {
+  'use strict';
+
+  var THEME_KEY = 'skills-index:theme';
+  var MODES = ['auto', 'light', 'dark'];
+  var root = document.documentElement;
+
+  function prefersDark() {
+    return !!(window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  /* localStorage throws on some file:// and private-mode setups, so never let
+     that break the page: fall back to following the system preference. */
+  function readMode() {
+    try {
+      var stored = window.localStorage.getItem(THEME_KEY);
+      return MODES.indexOf(stored) !== -1 ? stored : 'auto';
+    } catch (err) {
+      return 'auto';
+    }
+  }
+
+  function writeMode(value) {
+    try {
+      window.localStorage.setItem(THEME_KEY, value);
+    } catch (err) {
+      /* not persistable; the toggle still works for this page view */
+    }
+  }
+
+  var mode = readMode();
+
+  function effectiveMode(value) {
+    if (value !== 'auto') return value;
+    return prefersDark() ? 'dark' : 'light';
+  }
+
+  function paint() {
+    root.setAttribute('data-theme', effectiveMode(mode));
+    root.setAttribute('data-theme-mode', mode);
+    var buttons = document.querySelectorAll('.theme-btn');
+    for (var i = 0; i < buttons.length; i++) {
+      var isActive = buttons[i].getAttribute('data-theme-mode') === mode;
+      buttons[i].setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    }
+  }
+
+  /* Runs during head parsing: sets data-theme before the body is painted. */
+  paint();
+
+  /* Keep following the system while the user has not pinned a theme. */
+  if (window.matchMedia) {
+    var query = window.matchMedia('(prefers-color-scheme: dark)');
+    var onSystemChange = function () {
+      if (mode === 'auto') paint();
+    };
+    if (query.addEventListener) {
+      query.addEventListener('change', onSystemChange);
+    } else if (query.addListener) {
+      query.addListener(onSystemChange);
+    }
+  }
+
+  function applyFilter(input) {
+    var q = input.value.trim().toLowerCase();
+    var cards = document.querySelectorAll('.skill-card');
+    var i;
+    for (i = 0; i < cards.length; i++) {
+      cards[i].style.display =
+        (!q || cards[i].dataset.text.indexOf(q) !== -1) ? '' : 'none';
+    }
+    var links = document.querySelectorAll('.sidebar-link');
+    for (i = 0; i < links.length; i++) {
+      links[i].style.display =
+        (!q || links[i].dataset.text.indexOf(q) !== -1) ? '' : 'none';
+    }
+    var sections = document.querySelectorAll('.category-section');
+    for (i = 0; i < sections.length; i++) {
+      var visibleCards =
+        sections[i].querySelectorAll('.skill-card:not([style*="display: none"])');
+      sections[i].style.display = visibleCards.length ? '' : 'none';
+    }
+    var groups = document.querySelectorAll('.sidebar-group');
+    for (i = 0; i < groups.length; i++) {
+      var visibleLinks =
+        groups[i].querySelectorAll('.sidebar-link:not([style*="display: none"])');
+      groups[i].style.display = visibleLinks.length ? '' : 'none';
+    }
+  }
+
+  /* navigator.clipboard is undefined on file:// (not a secure context), so fall
+     back to the legacy textarea + execCommand path. */
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.top = '-1000px';
+      document.body.appendChild(area);
+      area.select();
+      var ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (err) {
+        ok = false;
+      }
+      document.body.removeChild(area);
+      if (ok) resolve(); else reject(new Error('copy failed'));
+    });
+  }
+
+  function wireExamplePrompts() {
+    var blocks = document.querySelectorAll('.examples');
+    for (var b = 0; b < blocks.length; b++) {
+      var block = blocks[b];
+      var label = block.getAttribute('data-copy-label') || '';
+      var copiedLabel = block.getAttribute('data-copied-label') || label;
+      var buttons = block.querySelectorAll('.example-prompt');
+      for (var i = 0; i < buttons.length; i++) {
+        (function (button) {
+          button.addEventListener('click', function () {
+            var chip = button.querySelector('.example-copy');
+            var settle = function (ok) {
+              if (!chip) return;
+              chip.textContent = ok ? copiedLabel : label;
+              if (ok) button.classList.add('is-copied');
+              window.setTimeout(function () {
+                chip.textContent = label;
+                button.classList.remove('is-copied');
+              }, 1400);
+            };
+            copyText(button.getAttribute('data-copy') || '')
+              .then(function () { settle(true); }, function () { settle(false); });
+          });
+        })(buttons[i]);
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var buttons = document.querySelectorAll('.theme-btn');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function (ev) {
+        var next = ev.currentTarget.getAttribute('data-theme-mode') || 'auto';
+        mode = MODES.indexOf(next) !== -1 ? next : 'auto';
+        writeMode(mode);
+        paint();
+      });
+    }
+    paint();
+    wireExamplePrompts();
+
+    var input = document.getElementById('search');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      applyFilter(input);
+    });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && input.value) {
+        input.value = '';
+        applyFilter(input);
+      }
+    });
+  });
+})();
+</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar"><div class="sidebar-title">Skill 索引</div><div class="sidebar-count">共 21 个 skill</div><input id="search" type="search" placeholder="筛选 skill…" autocomplete="off" aria-label="筛选 skill"><div class="theme-switch" role="group" aria-label="配色主题"><button type="button" class="theme-btn" data-theme-mode="auto">自动</button><button type="button" class="theme-btn" data-theme-mode="light">浅色</button><button type="button" class="theme-btn" data-theme-mode="dark">深色</button></div><div class="sidebar-group"><div class="sidebar-group-title">个人工具<span class="sidebar-group-count">21</span></div><a class="sidebar-link" href="#yashi-agents-md-export" data-text="yashi-agents-md-export 从规则数据库 ~/.agents/agents.json 导出 agents.md：按平台（windows/linux/macos/all）与语言（en/zh-cn）筛选条目，生成对应语言的 markdown 列表。脚本自动侦测操作系统（未指定时按当前系统导出英文版），并逐条校验规则里声明的命令是否真的存在，剔除含无效命令的条目并报告命令级可用性；同时说明数据库的字段格式与维护方式，供 ai 增删改规则。 导出 agents.md / 重新生成全局规则 往 agents.json 加一条规则 / 重新规整 agents 规则 按平台生成 agents（只要 windows 或 linux 的规则） 查这套规则里哪些命令没装 重新生成全局 agents.md 往规则数据库里加一条新规则 只要 windows 平台的规则，导出成 agents.md 这套规则里哪些命令在我机器上没装">yashi-agents-md-export</a><a class="sidebar-link" href="#yashi-build-skills-index" data-text="yashi-build-skills-index 生成或更新 skill 索引：以 json 数据库为唯一内容源，渲染出面向 ai 的 skills.md 与面向人类的 skills.html / readme.md。 创建或重建 skill 索引 新增、删除或同步 skill 后更新索引 给 skill 仓库生成首页 readme.md 检查索引是否与数据库、skills 目录一致 重建一下全局 skill 索引 新增了几个 skill，更新 skills.md 和 skills.html">yashi-build-skills-index</a><a class="sidebar-link" href="#yashi-dida-cli" data-text="yashi-dida-cli 用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、oauth 或 api 口令登录、以及查询与增删改的常用命令。 更新 dida-cli 列出我的清单/任务/标签/习惯/专注/倒数日 建一个滴答任务 dida 没登录怎么办 dida auth login 列出我的滴答清单和今天的任务 新建一个滴答任务并打上标签">yashi-dida-cli</a><a class="sidebar-link" href="#yashi-dsh-config-sync" data-text="yashi-dsh-config-sync 一句话导出/导入 deepseek harness（dsh）的配置（7z 压缩包，压缩级别 -mx0-9 与 aes-256 密码可选、默认 -mhe=on 连文件名一起加密；有图形会话且装了 7-zip 时用 7zg 弹进度窗，否则回退控制台 7z；导入兼容旧版 zip 并能自动或按参数处理加密包）。核心是「先让用户选范围」：内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 key、环境变量清单、锁文件、tui 状态、本地插件、历史备份、其它杂项等），可用 `pick` 弹出原生 gui 勾选框，也可在 gui 不可用时用 `pick --list` 拿到结构化目录后自行提问、再把结果用 `--scope` 传回；另支持 `--profiles` 限定 profile 与 `sync --from web --to desktop` 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，electron 独占的 profile 如实跳过启动测试）。导入时自动补全依赖、修正 pnpm-workspace.yaml 的 allowbuilds 半成品、检查 pnpm.cmd 包装器指向、实测 dsh web 启停并给出排障建议，可联动 yashi-dsh-update / yashi-dsh-env-sync / yashi-dsh-desktop-migrate。默认只带配置（不含素材包、运行数据、凭证），要什么由用户显式勾选。 导出 dsh 配置 / 备份 dsh 配置 迁移 dsh 到新机器 / 导入、恢复 dsh 配置 弹个框让我选导出范围（插件配置、skills、主题、宠物、表情包、会话列表） 只导出插件配置，别把主题、宠物、表情包一起打进去 只导出会话列表（不要聊天正文），或要连凭证一起导出 导出要加密 / 带密码（7z + aes-256） 只导出一个 profile / 把 web 的插件和配置同步到桌面版 把我的 dsh 配置导出一份备份 换机器了，把 dsh 配置导进去 把 web 的插件和配置同步到桌面版">yashi-dsh-config-sync</a><a class="sidebar-link" href="#yashi-dsh-desktop-migrate" data-text="yashi-dsh-desktop-migrate 把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。 把 dsh web 的插件和配置导入桌面版 桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件 让 desktop profile 和 web profile 的插件集一致 桌面版插件迁移 dsh 桌面版功能比 web 版少 把 dsh web 的插件和配置都导入到桌面版 桌面版怎么没有宠物和皮肤这些插件">yashi-dsh-desktop-migrate</a><a class="sidebar-link" href="#yashi-dsh-env-sync" data-text="yashi-dsh-env-sync 一句话导出/导入 deepseek harness（dsh）的环境变量（api key 等）——自动扫描 $dsh_home/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apikeyenv / process.env.x / ${var} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive，读 7z 需本机有 7z，找不到时告警并降级为只扫本机 $dsh_home），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。 导出 dsh 环境变量 备份 api key 迁移 dsh 到新机器需要恢复 key 从 ini 导入环境变量 dsh 换机器后 api key 恢复 检查 dsh 的 key 是否配齐 导出我 dsh 的所有环境变量 检查一下 dsh 的 api key 有没有配齐">yashi-dsh-env-sync</a><a class="sidebar-link" href="#yashi-dsh-ssh-otp-patch" data-text="yashi-dsh-ssh-otp-patch 给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2fa 支持（totp / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onkeyboardinteractive 沿 exec 链透传进 connectclient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。补丁幂等、带备份、可一键回滚；插件升级、重装或 dsh 更新覆盖 lib/ 之后重跑一次即可恢复。 dsh ssh 连不上 2fa 主机 ssh_exec 报 authentication failed (keyboard-interactive): verification code 插件升级后 otp 参数消失 重新打 2fa 补丁 ssh 主机要谷歌验证码 dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2fa 补丁 ssh_exec 报 authentication failed (keyboard-interactive): verification code，怎么解决 插件升级后 otp 参数又没了，重新打一次补丁">yashi-dsh-ssh-otp-patch</a><a class="sidebar-link" href="#yashi-dsh-update" data-text="yashi-dsh-update 一句话更新 deepseek harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $dsh_home/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowbuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 err_pnpm_unexpected_store），处理 git 依赖与不兼容/被跳过插件，实测 `dsh web --port 3088` 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。 更新 dsh 升级 deepseek harness dsh 更新后启动失败 dsh web 起不来 插件依赖未安装 把 dsh 和所有插件更新到最新 dsh 更新后起不来了，帮我排查">yashi-dsh-update</a><a class="sidebar-link" href="#yashi-encoding-convert" data-text="yashi-encoding-convert 文本编码转换工具：读取任意编码的文件（ansi/gbk、big5、shift-jis、utf-16 等），输出为 utf-8（默认）或指定编码。 适用于 ai 读取 ansi/gbk 等非 utf-8 文件时先转码，或用户需要以特定编码（如 gbk）保存/读取文件时。 当用户说&quot;编码转换&quot;&quot;ansi 文件&quot;&quot;gbk 编码&quot;&quot;转成 utf-8&quot;&quot;读取乱码文件&quot; &quot;以 gbk 保存&quot;或需要处理非 utf-8 文本文件时，调用本技能。 这个文件是 gbk 的，读出来乱码，帮我转成 utf-8 把这段文本以 gbk 保存">yashi-encoding-convert</a><a class="sidebar-link" href="#yashi-evernight-capture" data-text="yashi-evernight-capture 在 windows 上用 ecapture.exe（evernightcapture）按条件选中目标窗口或整个显示器并截图；成功与失败都以 json 返回，带稳定的退出码与诊断码，适合程序化调用。只读查询（--capabilities / --diagnostics / --screens / --list / --inspect / --show-config / --dry-run）优先于靠截图试错；任何会读取桌面像素的路径（整屏、bitblt、duplication、dwm 的屏幕回退）都必须由用户本人确认，不得代为应答。 截图 / 截取某个指定窗口、对话框或整个显示器 查询哪些窗口匹配条件（--list / --inspect 的结构化 json） 用稳定标识指定显示器（--screens），或一次截取多个窗口 解读 ecapture 的 json 结果、退出码与诊断码 只想做只读探测（--capabilities / --dry-run），不实际截图 截一下记事本这个窗口的图，存到 d:\shots\note.png 看看现在有哪些窗口，以 json 列出来 这台机器有几块屏，用稳定标识告诉我显示器名字 抓一下这个对话框，用 wgc 方式，不用整屏截图">yashi-evernight-capture</a><a class="sidebar-link" href="#yashi-flutter-debug" data-text="yashi-flutter-debug 在任意 flutter 项目里完成调试并观测运行状态：建立 flutter run 会话，读取 widget tree、抓应用日志，并只截取目标应用窗口（android 真机，以及 windows / macos / linux 桌面）。 flutter 调试（android 真机 / 桌面 / web） android 真机调试 查看 widget 树 / widget tree 抓应用日志或控制台输出 调试截图与热重载观测 排查真机点击无法注入、无可用目标等环境问题 在这个 flutter 项目上做 android 真机调试，抓一下 widget tree 真机启动调试并截图，我点一下按钮看能不能拿到日志输出 换 windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图 帮我看看这台安卓手机为什么模拟不了点击">yashi-flutter-debug</a><a class="sidebar-link" href="#yashi-github-read-contributions" data-text="yashi-github-read-contributions 讀取 github 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。 適用於任意 github 使用者。 看一下某个 github 用户的贡献热力图 算一下他连续贡献了多少天">yashi-github-read-contributions</a><a class="sidebar-link" href="#yashi-global-skills-sync" data-text="yashi-global-skills-sync 一句话同步用户全局 skill 目录 `~/.agents/skills/`——从六个固定 github 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 codenotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。 同步全局 skill 更新 skill 检查 skill 有没有新版本 拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill skill 增删改 同步一下我全局的 skill 检查和更新 dart、flutter、golang 这些 skill">yashi-global-skills-sync</a><a class="sidebar-link" href="#yashi-mcp-proxy-injection" data-text="yashi-mcp-proxy-injection 为任意读取网址或通过非中国搜索引擎（google、bing 国际版等）搜索的本地 mcp 服务器注入代理，解决其联网失败(fetch failed、chromium err_timed_out / err_connection_timed_out、无法访问被墙的 api 或搜索引擎)。 通用方法论：适用于任意此类 mcp 服务器、任意 mcp host（opencode / claude code / claude desktop / cline 等）与任意本地代理服务器（http connect 或 socks5），代理地址通过环境变量可配置，不绑定特定插件。 安装此类 mcp 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。 适用于安装、修复或排查无法联网的 mcp 服务器、mcp host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。 这个 mcp 服务器联网失败，帮我注入代理 chromium 连不上 google，给 mcp 配个代理">yashi-mcp-proxy-injection</a><a class="sidebar-link" href="#yashi-md-table-format" data-text="yashi-md-table-format 格式化 markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。 适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。 当需要&quot;表格对齐&quot;&quot;整理表格&quot;&quot;格式化表格&quot; &quot;表格工整&quot;&quot;让表格列宽一致&quot;，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。 把这份 markdown 的表格对齐一下 表格列宽不齐，整理成工整的">yashi-md-table-format</a><a class="sidebar-link" href="#yashi-node-tls-trust-fix" data-text="yashi-node-tls-trust-fix 诊断并修复杀毒软件、企业代理等对 https 做中间人（mitm）替换证书后，node 类工具 tls 校验失败的问题：报 self_signed_cert_in_chain、unable_to_verify_leaf_signature、 fetch failed、模型请求频繁重试等。 某个域名为什么偶发失败 当遇到&quot;证书错误&quot;&quot;证书校验失败&quot;&quot;self-signed certificate in certificate chain&quot; &quot;https 被杀毒软件拦截&quot;&quot;加密连接扫描&quot;&quot;模型经常重试&quot;&quot;fetch failed&quot;时调用本技能。 模型老是重试，查一下是不是证书被换了 fetch failed，怀疑杀毒软件拦截了 https 把卡巴斯基的根证书加进 node 的信任列表">yashi-node-tls-trust-fix</a><a class="sidebar-link" href="#yashi-opencc-convert" data-text="yashi-opencc-convert 使用 opencc 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。 适用于 .md 文件、代码注释、对话内容中的简繁转换需求。 当用户说&quot;简繁转换&quot; &quot;简体转繁体&quot;&quot;繁体转简体&quot;&quot;转成台湾繁体&quot;&quot;转成香港繁体&quot;&quot;把这段转成繁体/简体&quot; 或需要统一文本简繁风格时，调用本技能。 把这份文档转成繁体中文 这段繁体转成简体">yashi-opencc-convert</a><a class="sidebar-link" href="#yashi-opencode-config-portability" data-text="yashi-opencode-config-portability 一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。 当用户说 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。 导出我的 opencode 全部设置 把 opencode 配置迁移到新机器">yashi-opencode-config-portability</a><a class="sidebar-link" href="#yashi-rtk-token-saver" data-text="yashi-rtk-token-saver 在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 llm token。 适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。 当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 json 时使用。 跑一下测试，用 rtk 压缩输出 看下 git 状态和最近的提交">yashi-rtk-token-saver</a><a class="sidebar-link" href="#yashi-windows-bsod-analysis" data-text="yashi-windows-bsod-analysis 分析 windows 蓝屏（bsod）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 bugcheck 码与参数，用 windbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。 蓝屏 / bsod / 蓝屏重启 minidump、memory.dmp、完整/内核/活动/小内存转储 bugcheck 0x1e / 0x50 / 0xd1 / 0x139 windbg 报 wrong_symbols、kifatalexceptionhandler 想知道是哪个驱动导致蓝屏，或缺少调试工具时该去哪下 帮我看看这个蓝屏 dump：c:\windows\minidump\102826-15593-01.dmp 电脑今天蓝屏了，帮我分析 memory.dmp bugcheck 0x1e 是什么意思，严重吗 0xfffff800bda19bdf 这个地址属于哪个驱动 !analyze 报 wrong_symbols 怎么处理 连续蓝屏两次，把这两个 dump 都过一遍">yashi-windows-bsod-analysis</a><a class="sidebar-link" href="#yashi-windows-check-update" data-text="yashi-windows-check-update 检查 windows 11/10/server 的最新功能更新，从 microsoft 发布健康页面和 update catalog 提取 kb 信息及下载链接。 适用于 x64/arm64 架构。 查一下 windows 11 最新的功能更新 有没有新的累积更新 kb 和下载链接">yashi-windows-check-update</a></div></nav>
+<main class="content"><section class="category-section" id="cat-Personal"><h2 class="category-title">个人工具<span class="category-count">21</span></h2><article class="skill-card" id="yashi-agents-md-export" data-status="ok" data-src="a956be9d5fd4" data-text="yashi-agents-md-export 从规则数据库 ~/.agents/agents.json 导出 agents.md：按平台（windows/linux/macos/all）与语言（en/zh-cn）筛选条目，生成对应语言的 markdown 列表。脚本自动侦测操作系统（未指定时按当前系统导出英文版），并逐条校验规则里声明的命令是否真的存在，剔除含无效命令的条目并报告命令级可用性；同时说明数据库的字段格式与维护方式，供 ai 增删改规则。 导出 agents.md / 重新生成全局规则 往 agents.json 加一条规则 / 重新规整 agents 规则 按平台生成 agents（只要 windows 或 linux 的规则） 查这套规则里哪些命令没装 重新生成全局 agents.md 往规则数据库里加一条新规则 只要 windows 平台的规则，导出成 agents.md 这套规则里哪些命令在我机器上没装"><h3 class="skill-name">yashi-agents-md-export</h3><p class="purpose">从规则数据库 ~/.agents/AGENTS.json 导出 AGENTS.md：按平台（windows/linux/macos/all）与语言（en/zh-CN）筛选条目，生成对应语言的 Markdown 列表。脚本自动侦测操作系统（未指定时按当前系统导出英文版），并逐条校验规则里声明的命令是否真的存在，剔除含无效命令的条目并报告命令级可用性；同时说明数据库的字段格式与维护方式，供 AI 增删改规则。</p><div class="use-when"><div class="label">适用场景</div><ul><li>导出 AGENTS.md / 重新生成全局规则</li><li>往 AGENTS.json 加一条规则 / 重新规整 AGENTS 规则</li><li>按平台生成 AGENTS（只要 windows 或 linux 的规则）</li><li>查这套规则里哪些命令没装</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="重新生成全局 AGENTS.md"><span class="example-text">重新生成全局 AGENTS.md</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="往规则数据库里加一条新规则"><span class="example-text">往规则数据库里加一条新规则</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="只要 windows 平台的规则，导出成 AGENTS.md"><span class="example-text">只要 windows 平台的规则，导出成 AGENTS.md</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="这套规则里哪些命令在我机器上没装"><span class="example-text">这套规则里哪些命令在我机器上没装</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-agents-md-export/</code> <a class="folder-link" href="skills/yashi-agents-md-export/">打开目录</a></div></article><article class="skill-card" id="yashi-build-skills-index" data-status="ok" data-src="b83d4af65667" data-text="yashi-build-skills-index 生成或更新 skill 索引：以 json 数据库为唯一内容源，渲染出面向 ai 的 skills.md 与面向人类的 skills.html / readme.md。 创建或重建 skill 索引 新增、删除或同步 skill 后更新索引 给 skill 仓库生成首页 readme.md 检查索引是否与数据库、skills 目录一致 重建一下全局 skill 索引 新增了几个 skill，更新 skills.md 和 skills.html"><h3 class="skill-name">yashi-build-skills-index</h3><p class="purpose">生成或更新 skill 索引：以 JSON 数据库为唯一内容源，渲染出面向 AI 的 SKILLS.md 与面向人类的 SKILLS.html / README.md。</p><div class="use-when"><div class="label">适用场景</div><ul><li>创建或重建 skill 索引</li><li>新增、删除或同步 skill 后更新索引</li><li>给 skill 仓库生成首页 README.md</li><li>检查索引是否与数据库、skills 目录一致</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="重建一下全局 skill 索引"><span class="example-text">重建一下全局 skill 索引</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="新增了几个 skill，更新 SKILLS.md 和 SKILLS.html"><span class="example-text">新增了几个 skill，更新 SKILLS.md 和 SKILLS.html</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-build-skills-index/</code> <a class="folder-link" href="skills/yashi-build-skills-index/">打开目录</a></div></article><article class="skill-card" id="yashi-dida-cli" data-status="ok" data-src="f589110dba9c" data-text="yashi-dida-cli 用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、oauth 或 api 口令登录、以及查询与增删改的常用命令。 更新 dida-cli 列出我的清单/任务/标签/习惯/专注/倒数日 建一个滴答任务 dida 没登录怎么办 dida auth login 列出我的滴答清单和今天的任务 新建一个滴答任务并打上标签"><h3 class="skill-name">yashi-dida-cli</h3><p class="purpose">用 <code>dida</code>（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、OAuth 或 API 口令登录、以及查询与增删改的常用命令。</p><div class="use-when"><div class="label">适用场景</div><ul><li>更新 dida-cli</li><li>列出我的清单/任务/标签/习惯/专注/倒数日</li><li>建一个滴答任务</li><li>Dida 没登录怎么办</li><li>Dida auth login</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="列出我的滴答清单和今天的任务"><span class="example-text">列出我的滴答清单和今天的任务</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="新建一个滴答任务并打上标签"><span class="example-text">新建一个滴答任务并打上标签</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-dida-cli/</code> <a class="folder-link" href="skills/yashi-dida-cli/">打开目录</a></div></article><article class="skill-card" id="yashi-dsh-config-sync" data-status="ok" data-src="d2e699708030" data-text="yashi-dsh-config-sync 一句话导出/导入 deepseek harness（dsh）的配置（7z 压缩包，压缩级别 -mx0-9 与 aes-256 密码可选、默认 -mhe=on 连文件名一起加密；有图形会话且装了 7-zip 时用 7zg 弹进度窗，否则回退控制台 7z；导入兼容旧版 zip 并能自动或按参数处理加密包）。核心是「先让用户选范围」：内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 key、环境变量清单、锁文件、tui 状态、本地插件、历史备份、其它杂项等），可用 `pick` 弹出原生 gui 勾选框，也可在 gui 不可用时用 `pick --list` 拿到结构化目录后自行提问、再把结果用 `--scope` 传回；另支持 `--profiles` 限定 profile 与 `sync --from web --to desktop` 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，electron 独占的 profile 如实跳过启动测试）。导入时自动补全依赖、修正 pnpm-workspace.yaml 的 allowbuilds 半成品、检查 pnpm.cmd 包装器指向、实测 dsh web 启停并给出排障建议，可联动 yashi-dsh-update / yashi-dsh-env-sync / yashi-dsh-desktop-migrate。默认只带配置（不含素材包、运行数据、凭证），要什么由用户显式勾选。 导出 dsh 配置 / 备份 dsh 配置 迁移 dsh 到新机器 / 导入、恢复 dsh 配置 弹个框让我选导出范围（插件配置、skills、主题、宠物、表情包、会话列表） 只导出插件配置，别把主题、宠物、表情包一起打进去 只导出会话列表（不要聊天正文），或要连凭证一起导出 导出要加密 / 带密码（7z + aes-256） 只导出一个 profile / 把 web 的插件和配置同步到桌面版 把我的 dsh 配置导出一份备份 换机器了，把 dsh 配置导进去 把 web 的插件和配置同步到桌面版"><h3 class="skill-name">yashi-dsh-config-sync</h3><p class="purpose">一句话导出/导入 DeepSeek Harness（dsh）的配置（7z 压缩包，压缩级别 -mx0-9 与 AES-256 密码可选、默认 -mhe=on 连文件名一起加密；有图形会话且装了 7-Zip 时用 7zG 弹进度窗，否则回退控制台 7z；导入兼容旧版 zip 并能自动或按参数处理加密包）。核心是「先让用户选范围」：内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 KEY、环境变量清单、锁文件、TUI 状态、本地插件、历史备份、其它杂项等），可用 <code>pick</code> 弹出原生 GUI 勾选框，也可在 GUI 不可用时用 <code>pick --list</code> 拿到结构化目录后自行提问、再把结果用 <code>--scope</code> 传回；另支持 <code>--profiles</code> 限定 profile 与 <code>sync --from web --to desktop</code> 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，Electron 独占的 profile 如实跳过启动测试）。导入时自动补全依赖、修正 pnpm-workspace.yaml 的 allowBuilds 半成品、检查 pnpm.cmd 包装器指向、实测 dsh web 启停并给出排障建议，可联动 yashi-dsh-update / yashi-dsh-env-sync / yashi-dsh-desktop-migrate。默认只带配置（不含素材包、运行数据、凭证），要什么由用户显式勾选。</p><div class="use-when"><div class="label">适用场景</div><ul><li>导出 dsh 配置 / 备份 dsh 配置</li><li>迁移 dsh 到新机器 / 导入、恢复 dsh 配置</li><li>弹个框让我选导出范围（插件配置、skills、主题、宠物、表情包、会话列表）</li><li>只导出插件配置，别把主题、宠物、表情包一起打进去</li><li>只导出会话列表（不要聊天正文），或要连凭证一起导出</li><li>导出要加密 / 带密码（7z + AES-256）</li><li>只导出一个 profile / 把 web 的插件和配置同步到桌面版</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="把我的 dsh 配置导出一份备份"><span class="example-text">把我的 dsh 配置导出一份备份</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="换机器了，把 dsh 配置导进去"><span class="example-text">换机器了，把 dsh 配置导进去</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="把 web 的插件和配置同步到桌面版"><span class="example-text">把 web 的插件和配置同步到桌面版</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-dsh-config-sync/</code> <a class="folder-link" href="skills/yashi-dsh-config-sync/">打开目录</a></div></article><article class="skill-card" id="yashi-dsh-desktop-migrate" data-status="ok" data-src="2a0b7999bfc3" data-text="yashi-dsh-desktop-migrate 把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。 把 dsh web 的插件和配置导入桌面版 桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件 让 desktop profile 和 web profile 的插件集一致 桌面版插件迁移 dsh 桌面版功能比 web 版少 把 dsh web 的插件和配置都导入到桌面版 桌面版怎么没有宠物和皮肤这些插件"><h3 class="skill-name">yashi-dsh-desktop-migrate</h3><p class="purpose">把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。</p><div class="use-when"><div class="label">适用场景</div><ul><li>把 dsh web 的插件和配置导入桌面版</li><li>桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件</li><li>让 desktop profile 和 web profile 的插件集一致</li><li>桌面版插件迁移</li><li>Dsh 桌面版功能比 web 版少</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="把 dsh web 的插件和配置都导入到桌面版"><span class="example-text">把 dsh web 的插件和配置都导入到桌面版</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="桌面版怎么没有宠物和皮肤这些插件"><span class="example-text">桌面版怎么没有宠物和皮肤这些插件</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-dsh-desktop-migrate/</code> <a class="folder-link" href="skills/yashi-dsh-desktop-migrate/">打开目录</a></div></article><article class="skill-card" id="yashi-dsh-env-sync" data-status="ok" data-src="cda880349a13" data-text="yashi-dsh-env-sync 一句话导出/导入 deepseek harness（dsh）的环境变量（api key 等）——自动扫描 $dsh_home/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apikeyenv / process.env.x / ${var} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive，读 7z 需本机有 7z，找不到时告警并降级为只扫本机 $dsh_home），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。 导出 dsh 环境变量 备份 api key 迁移 dsh 到新机器需要恢复 key 从 ini 导入环境变量 dsh 换机器后 api key 恢复 检查 dsh 的 key 是否配齐 导出我 dsh 的所有环境变量 检查一下 dsh 的 api key 有没有配齐"><h3 class="skill-name">yashi-dsh-env-sync</h3><p class="purpose">一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive，读 7z 需本机有 7z，找不到时告警并降级为只扫本机 $DSH_HOME），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。</p><div class="use-when"><div class="label">适用场景</div><ul><li>导出 dsh 环境变量</li><li>备份 API key</li><li>迁移 dsh 到新机器需要恢复 key</li><li>从 ini 导入环境变量</li><li>Dsh 换机器后 API key 恢复</li><li>检查 dsh 的 key 是否配齐</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="导出我 dsh 的所有环境变量"><span class="example-text">导出我 dsh 的所有环境变量</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="检查一下 dsh 的 API key 有没有配齐"><span class="example-text">检查一下 dsh 的 API key 有没有配齐</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-dsh-env-sync/</code> <a class="folder-link" href="skills/yashi-dsh-env-sync/">打开目录</a></div></article><article class="skill-card" id="yashi-dsh-ssh-otp-patch" data-status="ok" data-src="114397aa2a39" data-text="yashi-dsh-ssh-otp-patch 给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2fa 支持（totp / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onkeyboardinteractive 沿 exec 链透传进 connectclient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。补丁幂等、带备份、可一键回滚；插件升级、重装或 dsh 更新覆盖 lib/ 之后重跑一次即可恢复。 dsh ssh 连不上 2fa 主机 ssh_exec 报 authentication failed (keyboard-interactive): verification code 插件升级后 otp 参数消失 重新打 2fa 补丁 ssh 主机要谷歌验证码 dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2fa 补丁 ssh_exec 报 authentication failed (keyboard-interactive): verification code，怎么解决 插件升级后 otp 参数又没了，重新打一次补丁"><h3 class="skill-name">yashi-dsh-ssh-otp-patch</h3><p class="purpose">给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2FA 支持（TOTP / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onKeyboardInteractive 沿 exec 链透传进 connectClient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。补丁幂等、带备份、可一键回滚；插件升级、重装或 dsh 更新覆盖 lib/ 之后重跑一次即可恢复。</p><div class="use-when"><div class="label">适用场景</div><ul><li>Dsh ssh 连不上 2FA 主机</li><li>Ssh_exec 报 Authentication failed (keyboard-interactive): Verification code</li><li>插件升级后 otp 参数消失</li><li>重新打 2FA 补丁</li><li>Ssh 主机要谷歌验证码</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2FA 补丁"><span class="example-text">dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2FA 补丁</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="ssh_exec 报 Authentication failed (keyboard-interactive): Verification code，怎么解决"><span class="example-text">ssh_exec 报 Authentication failed (keyboard-interactive): Verification code，怎么解决</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="插件升级后 otp 参数又没了，重新打一次补丁"><span class="example-text">插件升级后 otp 参数又没了，重新打一次补丁</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-dsh-ssh-otp-patch/</code> <a class="folder-link" href="skills/yashi-dsh-ssh-otp-patch/">打开目录</a></div></article><article class="skill-card" id="yashi-dsh-update" data-status="ok" data-src="4d498bb3fc8b" data-text="yashi-dsh-update 一句话更新 deepseek harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $dsh_home/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowbuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 err_pnpm_unexpected_store），处理 git 依赖与不兼容/被跳过插件，实测 `dsh web --port 3088` 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。 更新 dsh 升级 deepseek harness dsh 更新后启动失败 dsh web 起不来 插件依赖未安装 把 dsh 和所有插件更新到最新 dsh 更新后起不来了，帮我排查"><h3 class="skill-name">yashi-dsh-update</h3><p class="purpose">一句话更新 DeepSeek Harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $DSH_HOME/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowBuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 ERR_PNPM_UNEXPECTED_STORE），处理 git 依赖与不兼容/被跳过插件，实测 <code>dsh web --port 3088</code> 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。</p><div class="use-when"><div class="label">适用场景</div><ul><li>更新 dsh</li><li>升级 DeepSeek Harness</li><li>Dsh 更新后启动失败</li><li>Dsh web 起不来</li><li>插件依赖未安装</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="把 dsh 和所有插件更新到最新"><span class="example-text">把 dsh 和所有插件更新到最新</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="dsh 更新后起不来了，帮我排查"><span class="example-text">dsh 更新后起不来了，帮我排查</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-dsh-update/</code> <a class="folder-link" href="skills/yashi-dsh-update/">打开目录</a></div></article><article class="skill-card" id="yashi-encoding-convert" data-status="ok" data-src="52a897908f3a" data-text="yashi-encoding-convert 文本编码转换工具：读取任意编码的文件（ansi/gbk、big5、shift-jis、utf-16 等），输出为 utf-8（默认）或指定编码。 适用于 ai 读取 ansi/gbk 等非 utf-8 文件时先转码，或用户需要以特定编码（如 gbk）保存/读取文件时。 当用户说&quot;编码转换&quot;&quot;ansi 文件&quot;&quot;gbk 编码&quot;&quot;转成 utf-8&quot;&quot;读取乱码文件&quot; &quot;以 gbk 保存&quot;或需要处理非 utf-8 文本文件时，调用本技能。 这个文件是 gbk 的，读出来乱码，帮我转成 utf-8 把这段文本以 gbk 保存"><h3 class="skill-name">yashi-encoding-convert</h3><p class="purpose">文本编码转换工具：读取任意编码的文件（ANSI/GBK、Big5、Shift-JIS、UTF-16 等），输出为 UTF-8（默认）或指定编码。</p><div class="use-when"><div class="label">适用场景</div><ul><li>适用于 AI 读取 ANSI/GBK 等非 UTF-8 文件时先转码，或用户需要以特定编码（如 GBK）保存/读取文件时。</li><li>当用户说"编码转换""ANSI 文件""GBK 编码""转成 UTF-8""读取乱码文件" "以 GBK 保存"或需要处理非 UTF-8 文本文件时，调用本技能。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="这个文件是 GBK 的，读出来乱码，帮我转成 UTF-8"><span class="example-text">这个文件是 GBK 的，读出来乱码，帮我转成 UTF-8</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="把这段文本以 GBK 保存"><span class="example-text">把这段文本以 GBK 保存</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-encoding-convert/</code> <a class="folder-link" href="skills/yashi-encoding-convert/">打开目录</a></div></article><article class="skill-card" id="yashi-evernight-capture" data-status="ok" data-src="a337ed11ff43" data-text="yashi-evernight-capture 在 windows 上用 ecapture.exe（evernightcapture）按条件选中目标窗口或整个显示器并截图；成功与失败都以 json 返回，带稳定的退出码与诊断码，适合程序化调用。只读查询（--capabilities / --diagnostics / --screens / --list / --inspect / --show-config / --dry-run）优先于靠截图试错；任何会读取桌面像素的路径（整屏、bitblt、duplication、dwm 的屏幕回退）都必须由用户本人确认，不得代为应答。 截图 / 截取某个指定窗口、对话框或整个显示器 查询哪些窗口匹配条件（--list / --inspect 的结构化 json） 用稳定标识指定显示器（--screens），或一次截取多个窗口 解读 ecapture 的 json 结果、退出码与诊断码 只想做只读探测（--capabilities / --dry-run），不实际截图 截一下记事本这个窗口的图，存到 d:\shots\note.png 看看现在有哪些窗口，以 json 列出来 这台机器有几块屏，用稳定标识告诉我显示器名字 抓一下这个对话框，用 wgc 方式，不用整屏截图"><h3 class="skill-name">yashi-evernight-capture</h3><p class="purpose">在 Windows 上用 ECAPTURE.EXE（EvernightCapture）按条件选中目标窗口或整个显示器并截图；成功与失败都以 JSON 返回，带稳定的退出码与诊断码，适合程序化调用。只读查询（--capabilities / --diagnostics / --screens / --list / --inspect / --show-config / --dry-run）优先于靠截图试错；任何会读取桌面像素的路径（整屏、bitblt、duplication、DWM 的屏幕回退）都必须由用户本人确认，不得代为应答。</p><div class="use-when"><div class="label">适用场景</div><ul><li>截图 / 截取某个指定窗口、对话框或整个显示器</li><li>查询哪些窗口匹配条件（--list / --inspect 的结构化 JSON）</li><li>用稳定标识指定显示器（--screens），或一次截取多个窗口</li><li>解读 ECAPTURE 的 JSON 结果、退出码与诊断码</li><li>只想做只读探测（--capabilities / --dry-run），不实际截图</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="截一下记事本这个窗口的图，存到 D:\shots\note.png"><span class="example-text">截一下记事本这个窗口的图，存到 D:\shots\note.png</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="看看现在有哪些窗口，以 JSON 列出来"><span class="example-text">看看现在有哪些窗口，以 JSON 列出来</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="这台机器有几块屏，用稳定标识告诉我显示器名字"><span class="example-text">这台机器有几块屏，用稳定标识告诉我显示器名字</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="抓一下这个对话框，用 wgc 方式，不用整屏截图"><span class="example-text">抓一下这个对话框，用 wgc 方式，不用整屏截图</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-evernight-capture/</code> <a class="folder-link" href="skills/yashi-evernight-capture/">打开目录</a></div></article><article class="skill-card" id="yashi-flutter-debug" data-status="ok" data-src="ec5931a965de" data-text="yashi-flutter-debug 在任意 flutter 项目里完成调试并观测运行状态：建立 flutter run 会话，读取 widget tree、抓应用日志，并只截取目标应用窗口（android 真机，以及 windows / macos / linux 桌面）。 flutter 调试（android 真机 / 桌面 / web） android 真机调试 查看 widget 树 / widget tree 抓应用日志或控制台输出 调试截图与热重载观测 排查真机点击无法注入、无可用目标等环境问题 在这个 flutter 项目上做 android 真机调试，抓一下 widget tree 真机启动调试并截图，我点一下按钮看能不能拿到日志输出 换 windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图 帮我看看这台安卓手机为什么模拟不了点击"><h3 class="skill-name">yashi-flutter-debug</h3><p class="purpose">在任意 Flutter 项目里完成调试并观测运行状态：建立 flutter run 会话，读取 Widget Tree、抓应用日志，并只截取目标应用窗口（Android 真机，以及 Windows / macOS / Linux 桌面）。</p><div class="use-when"><div class="label">适用场景</div><ul><li>Flutter 调试（Android 真机 / 桌面 / Web）</li><li>Android 真机调试</li><li>查看 widget 树 / Widget Tree</li><li>抓应用日志或控制台输出</li><li>调试截图与热重载观测</li><li>排查真机点击无法注入、无可用目标等环境问题</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree"><span class="example-text">在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="真机启动调试并截图，我点一下按钮看能不能拿到日志输出"><span class="example-text">真机启动调试并截图，我点一下按钮看能不能拿到日志输出</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="换 Windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图"><span class="example-text">换 Windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="帮我看看这台安卓手机为什么模拟不了点击"><span class="example-text">帮我看看这台安卓手机为什么模拟不了点击</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-flutter-debug/</code> <a class="folder-link" href="skills/yashi-flutter-debug/">打开目录</a></div></article><article class="skill-card" id="yashi-github-read-contributions" data-status="ok" data-src="901d51009a42" data-text="yashi-github-read-contributions 讀取 github 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。 適用於任意 github 使用者。 看一下某个 github 用户的贡献热力图 算一下他连续贡献了多少天"><h3 class="skill-name">yashi-github-read-contributions</h3><p class="purpose">讀取 GitHub 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。</p><div class="use-when"><div class="label">适用场景</div><ul><li>適用於任意 GitHub 使用者。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="看一下某个 GitHub 用户的贡献热力图"><span class="example-text">看一下某个 GitHub 用户的贡献热力图</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="算一下他连续贡献了多少天"><span class="example-text">算一下他连续贡献了多少天</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-github-read-contributions/</code> <a class="folder-link" href="skills/yashi-github-read-contributions/">打开目录</a></div></article><article class="skill-card" id="yashi-global-skills-sync" data-status="ok" data-src="ac0d3c946f1c" data-text="yashi-global-skills-sync 一句话同步用户全局 skill 目录 `~/.agents/skills/`——从六个固定 github 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 codenotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。 同步全局 skill 更新 skill 检查 skill 有没有新版本 拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill skill 增删改 同步一下我全局的 skill 检查和更新 dart、flutter、golang 这些 skill"><h3 class="skill-name">yashi-global-skills-sync</h3><p class="purpose">一句话同步用户全局 skill 目录 <code>~/.agents/skills/</code>——从六个固定 GitHub 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 CodeNotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。</p><div class="use-when"><div class="label">适用场景</div><ul><li>同步全局 skill</li><li>更新 skill</li><li>检查 skill 有没有新版本</li><li>拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill</li><li>Skill 增删改</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="同步一下我全局的 skill"><span class="example-text">同步一下我全局的 skill</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="检查和更新 dart、flutter、golang 这些 skill"><span class="example-text">检查和更新 dart、flutter、golang 这些 skill</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-global-skills-sync/</code> <a class="folder-link" href="skills/yashi-global-skills-sync/">打开目录</a></div></article><article class="skill-card" id="yashi-mcp-proxy-injection" data-status="ok" data-src="de864785bd08" data-text="yashi-mcp-proxy-injection 为任意读取网址或通过非中国搜索引擎（google、bing 国际版等）搜索的本地 mcp 服务器注入代理，解决其联网失败(fetch failed、chromium err_timed_out / err_connection_timed_out、无法访问被墙的 api 或搜索引擎)。 通用方法论：适用于任意此类 mcp 服务器、任意 mcp host（opencode / claude code / claude desktop / cline 等）与任意本地代理服务器（http connect 或 socks5），代理地址通过环境变量可配置，不绑定特定插件。 安装此类 mcp 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。 适用于安装、修复或排查无法联网的 mcp 服务器、mcp host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。 这个 mcp 服务器联网失败，帮我注入代理 chromium 连不上 google，给 mcp 配个代理"><h3 class="skill-name">yashi-mcp-proxy-injection</h3><p class="purpose">为任意读取网址或通过非中国搜索引擎（Google、Bing 国际版等）搜索的本地 MCP 服务器注入代理，解决其联网失败(fetch failed、chromium ERR_TIMED_OUT / ERR_CONNECTION_TIMED_OUT、无法访问被墙的 API 或搜索引擎)。</p><div class="use-when"><div class="label">适用场景</div><ul><li>通用方法论：适用于任意此类 MCP 服务器、任意 MCP host（opencode / Claude Code / Claude Desktop / Cline 等）与任意本地代理服务器（HTTP CONNECT 或 SOCKS5），代理地址通过环境变量可配置，不绑定特定插件。</li><li>安装此类 MCP 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。</li><li>适用于安装、修复或排查无法联网的 MCP 服务器、MCP host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="这个 MCP 服务器联网失败，帮我注入代理"><span class="example-text">这个 MCP 服务器联网失败，帮我注入代理</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="chromium 连不上 Google，给 MCP 配个代理"><span class="example-text">chromium 连不上 Google，给 MCP 配个代理</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-mcp-proxy-injection/</code> <a class="folder-link" href="skills/yashi-mcp-proxy-injection/">打开目录</a></div></article><article class="skill-card" id="yashi-md-table-format" data-status="ok" data-src="05cf2e5566bb" data-text="yashi-md-table-format 格式化 markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。 适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。 当需要&quot;表格对齐&quot;&quot;整理表格&quot;&quot;格式化表格&quot; &quot;表格工整&quot;&quot;让表格列宽一致&quot;，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。 把这份 markdown 的表格对齐一下 表格列宽不齐，整理成工整的"><h3 class="skill-name">yashi-md-table-format</h3><p class="purpose">格式化 Markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。</p><div class="use-when"><div class="label">适用场景</div><ul><li>适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。</li><li>当需要"表格对齐""整理表格""格式化表格" "表格工整""让表格列宽一致"，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="把这份 Markdown 的表格对齐一下"><span class="example-text">把这份 Markdown 的表格对齐一下</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="表格列宽不齐，整理成工整的"><span class="example-text">表格列宽不齐，整理成工整的</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-md-table-format/</code> <a class="folder-link" href="skills/yashi-md-table-format/">打开目录</a></div></article><article class="skill-card" id="yashi-node-tls-trust-fix" data-status="ok" data-src="46919b0bbb6c" data-text="yashi-node-tls-trust-fix 诊断并修复杀毒软件、企业代理等对 https 做中间人（mitm）替换证书后，node 类工具 tls 校验失败的问题：报 self_signed_cert_in_chain、unable_to_verify_leaf_signature、 fetch failed、模型请求频繁重试等。 某个域名为什么偶发失败 当遇到&quot;证书错误&quot;&quot;证书校验失败&quot;&quot;self-signed certificate in certificate chain&quot; &quot;https 被杀毒软件拦截&quot;&quot;加密连接扫描&quot;&quot;模型经常重试&quot;&quot;fetch failed&quot;时调用本技能。 模型老是重试，查一下是不是证书被换了 fetch failed，怀疑杀毒软件拦截了 https 把卡巴斯基的根证书加进 node 的信任列表"><h3 class="skill-name">yashi-node-tls-trust-fix</h3><p class="purpose">诊断并修复杀毒软件、企业代理等对 HTTPS 做中间人（MITM）替换证书后，Node 类工具 TLS 校验失败的问题：报 SELF_SIGNED_CERT_IN_CHAIN、UNABLE_TO_VERIFY_LEAF_SIGNATURE、 fetch failed、模型请求频繁重试等。</p><div class="use-when"><div class="label">适用场景</div><ul><li>某个域名为什么偶发失败</li><li>当遇到"证书错误""证书校验失败""self-signed certificate in certificate chain" "HTTPS 被杀毒软件拦截""加密连接扫描""模型经常重试""fetch failed"时调用本技能。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="模型老是重试，查一下是不是证书被换了"><span class="example-text">模型老是重试，查一下是不是证书被换了</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="fetch failed，怀疑杀毒软件拦截了 HTTPS"><span class="example-text">fetch failed，怀疑杀毒软件拦截了 HTTPS</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="把卡巴斯基的根证书加进 Node 的信任列表"><span class="example-text">把卡巴斯基的根证书加进 Node 的信任列表</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-node-tls-trust-fix/</code> <a class="folder-link" href="skills/yashi-node-tls-trust-fix/">打开目录</a></div></article><article class="skill-card" id="yashi-opencc-convert" data-status="ok" data-src="b680a0cba350" data-text="yashi-opencc-convert 使用 opencc 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。 适用于 .md 文件、代码注释、对话内容中的简繁转换需求。 当用户说&quot;简繁转换&quot; &quot;简体转繁体&quot;&quot;繁体转简体&quot;&quot;转成台湾繁体&quot;&quot;转成香港繁体&quot;&quot;把这段转成繁体/简体&quot; 或需要统一文本简繁风格时，调用本技能。 把这份文档转成繁体中文 这段繁体转成简体"><h3 class="skill-name">yashi-opencc-convert</h3><p class="purpose">使用 OpenCC 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。</p><div class="use-when"><div class="label">适用场景</div><ul><li>适用于 .md 文件、代码注释、对话内容中的简繁转换需求。</li><li>当用户说"简繁转换" "简体转繁体""繁体转简体""转成台湾繁体""转成香港繁体""把这段转成繁体/简体" 或需要统一文本简繁风格时，调用本技能。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="把这份文档转成繁体中文"><span class="example-text">把这份文档转成繁体中文</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="这段繁体转成简体"><span class="example-text">这段繁体转成简体</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-opencc-convert/</code> <a class="folder-link" href="skills/yashi-opencc-convert/">打开目录</a></div></article><article class="skill-card" id="yashi-opencode-config-portability" data-status="ok" data-src="d5f83338903b" data-text="yashi-opencode-config-portability 一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。 当用户说 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。 导出我的 opencode 全部设置 把 opencode 配置迁移到新机器"><h3 class="skill-name">yashi-opencode-config-portability</h3><p class="purpose">一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。</p><div class="use-when"><div class="label">适用场景</div><ul><li>当用户说 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="导出我的 opencode 全部设置"><span class="example-text">导出我的 opencode 全部设置</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="把 opencode 配置迁移到新机器"><span class="example-text">把 opencode 配置迁移到新机器</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-opencode-config-portability/</code> <a class="folder-link" href="skills/yashi-opencode-config-portability/">打开目录</a></div></article><article class="skill-card" id="yashi-rtk-token-saver" data-status="ok" data-src="a6303c7cea76" data-text="yashi-rtk-token-saver 在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 llm token。 适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。 当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 json 时使用。 跑一下测试，用 rtk 压缩输出 看下 git 状态和最近的提交"><h3 class="skill-name">yashi-rtk-token-saver</h3><p class="purpose">在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 LLM token。</p><div class="use-when"><div class="label">适用场景</div><ul><li>适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。</li><li>当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 JSON 时使用。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="跑一下测试，用 rtk 压缩输出"><span class="example-text">跑一下测试，用 rtk 压缩输出</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="看下 git 状态和最近的提交"><span class="example-text">看下 git 状态和最近的提交</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-rtk-token-saver/</code> <a class="folder-link" href="skills/yashi-rtk-token-saver/">打开目录</a></div></article><article class="skill-card" id="yashi-windows-bsod-analysis" data-status="ok" data-src="d518af58c382" data-text="yashi-windows-bsod-analysis 分析 windows 蓝屏（bsod）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 bugcheck 码与参数，用 windbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。 蓝屏 / bsod / 蓝屏重启 minidump、memory.dmp、完整/内核/活动/小内存转储 bugcheck 0x1e / 0x50 / 0xd1 / 0x139 windbg 报 wrong_symbols、kifatalexceptionhandler 想知道是哪个驱动导致蓝屏，或缺少调试工具时该去哪下 帮我看看这个蓝屏 dump：c:\windows\minidump\102826-15593-01.dmp 电脑今天蓝屏了，帮我分析 memory.dmp bugcheck 0x1e 是什么意思，严重吗 0xfffff800bda19bdf 这个地址属于哪个驱动 !analyze 报 wrong_symbols 怎么处理 连续蓝屏两次，把这两个 dump 都过一遍"><h3 class="skill-name">yashi-windows-bsod-analysis</h3><p class="purpose">分析 Windows 蓝屏（BSOD）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 BugCheck 码与参数，用 WinDbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。</p><div class="use-when"><div class="label">适用场景</div><ul><li>蓝屏 / BSOD / 蓝屏重启</li><li>Minidump、MEMORY.DMP、完整/内核/活动/小内存转储</li><li>BugCheck 0x1E / 0x50 / 0xD1 / 0x139</li><li>WinDbg 报 WRONG_SYMBOLS、KiFatalExceptionHandler</li><li>想知道是哪个驱动导致蓝屏，或缺少调试工具时该去哪下</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="帮我看看这个蓝屏 dump：C:\Windows\Minidump\102826-15593-01.dmp"><span class="example-text">帮我看看这个蓝屏 dump：C:\Windows\Minidump\102826-15593-01.dmp</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="电脑今天蓝屏了，帮我分析 MEMORY.DMP"><span class="example-text">电脑今天蓝屏了，帮我分析 MEMORY.DMP</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="BugCheck 0x1E 是什么意思，严重吗"><span class="example-text">BugCheck 0x1E 是什么意思，严重吗</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="0xFFFFF800BDA19BDF 这个地址属于哪个驱动"><span class="example-text">0xFFFFF800BDA19BDF 这个地址属于哪个驱动</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="!analyze 报 WRONG_SYMBOLS 怎么处理"><span class="example-text">!analyze 报 WRONG_SYMBOLS 怎么处理</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="连续蓝屏两次，把这两个 dump 都过一遍"><span class="example-text">连续蓝屏两次，把这两个 dump 都过一遍</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-windows-bsod-analysis/</code> <a class="folder-link" href="skills/yashi-windows-bsod-analysis/">打开目录</a></div></article><article class="skill-card" id="yashi-windows-check-update" data-status="ok" data-src="f97fa766ee76" data-text="yashi-windows-check-update 检查 windows 11/10/server 的最新功能更新，从 microsoft 发布健康页面和 update catalog 提取 kb 信息及下载链接。 适用于 x64/arm64 架构。 查一下 windows 11 最新的功能更新 有没有新的累积更新 kb 和下载链接"><h3 class="skill-name">yashi-windows-check-update</h3><p class="purpose">检查 Windows 11/10/Server 的最新功能更新，从 Microsoft 发布健康页面和 Update Catalog 提取 KB 信息及下载链接。</p><div class="use-when"><div class="label">适用场景</div><ul><li>适用于 x64/ARM64 架构。</li></ul></div><div class="examples" data-copy-label="复制" data-copied-label="已复制"><div class="label">提示词示例</div><ul class="example-list"><li><button type="button" class="example-prompt" data-copy="查一下 Windows 11 最新的功能更新"><span class="example-text">查一下 Windows 11 最新的功能更新</span><span class="example-copy" aria-hidden="true">复制</span></button></li><li><button type="button" class="example-prompt" data-copy="有没有新的累积更新 KB 和下载链接"><span class="example-text">有没有新的累积更新 KB 和下载链接</span><span class="example-copy" aria-hidden="true">复制</span></button></li></ul></div><div class="location"><span class="label">位置</span> <code>skills/yashi-windows-check-update/</code> <a class="folder-link" href="skills/yashi-windows-check-update/">打开目录</a></div></article></section></main>
+</div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 ---
 name: yashi-dsh-env-sync
-description: 一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 zip 作为变量名来源（--from-archive），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。适用于「导出 dsh 环境变量」「备份 API key」「迁移 dsh 到新机器需要恢复 key」「从 ini 导入环境变量」「dsh 换机器后 API key 恢复」「检查 dsh 的 key 是否配齐」等场景。
+description: 一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。适用于「导出 dsh 环境变量」「备份 API key」「迁移 dsh 到新机器需要恢复 key」「从 ini 导入环境变量」「dsh 换机器后 API key 恢复」「检查 dsh 的 key 是否配齐」等场景。
 ---
 
 <!--
@@ -21,18 +21,19 @@ description: 一句话导出/导入 DeepSeek Harness（dsh）的环境变量（A
    - 全部 —— 默认；
    - 补上 `settings.yaml` 未引用的变量 —— 导出时加 `-w A B`；
    - 只恢复其中几个 —— 导入时加 `--only A B`；
-   - 迁移场景不知道要哪些 —— 用 `--from-archive <config-sync 的 zip>` 反查。
+   - 迁移场景不知道要哪些 —— 用 `--from-archive <config-sync 的 7z 配置包>` 反查。
    用户答完再执行，并在汇报里说明这次带了哪些变量。
 2. **脚本位置**：相对本 SKILL.md 是 `scripts/dsh_env_sync.py`；
    完整路径 `~/.agents/skills/yashi-dsh-env-sync/scripts/dsh_env_sync.py`。
    纯标准库、无第三方依赖，直接 `python <脚本>` 运行。
 3. **导出的 ini 是敏感文件**（含明文 API key）：放私有位置（如 `~/dsh-env-backup.ini`），
-   不要提交 git、不要明文共享、不要放进 dsh 配置 zip。
+   不要提交 git、不要明文共享、不要放进 dsh 配置包。
 4. **输出默认打码**：`list` / `--dry-run` 只显示 `AQ.f*******90` 形式；确需明文用 `--show-values`。
 5. **setx 只对新进程生效**：导入后当前终端读不到，必须**重开终端 / 重启 dsh**。
 6. **联动**：`yashi-dsh-config-sync` 导出的配置包里**没有**环境变量，
    完整迁移 = config-sync 导配置 + 本脚本导 ini。反向也可用
-   `--from-archive <config-sync 的 zip>` 直接从包里发现「需要哪些变量名」。
+   `--from-archive <config-sync 的 7z 配置包>` 直接从包里发现「需要哪些变量名」；
+   读 7z 包需要本机有 `7z`（7-Zip / p7zip），找不到时脚本会告警并降级为只扫描本机 `$DSH_HOME`。
 
 ## 命令速查
 
@@ -43,7 +44,7 @@ $OUT = "<备份目录>"    # 占位：U 盘 / 网络盘 / 任意目录，按需�
 # 1) 列出 dsh 用到的环境变量名（值打码）
 python $E list
 # 迁移场景：直接从配置包里发现需要哪些变量
-python $E list --from-archive "$OUT\dsh-config.zip"
+python $E list --from-archive "$OUT\dsh-config.7z"
 
 # 2) 导出到 ini（默认 ~/dsh-env-backup.ini）
 python $E export
@@ -84,7 +85,7 @@ python $E check  -i <ini>               # 可选：再核对一次
 ### 与 config-sync 的迁移联动
 ```powershell
 # 新机器上，配置已导入但还没恢复密钥：
-python $E list --from-archive <config-sync 的 zip>   # 看这个配置需要哪些 key
+python $E list --from-archive <config-sync 的 7z 配置包>   # 看这个配置需要哪些 key
 python $E import -i <ini>                            # 用导出好的 ini 恢复
 ```
 
@@ -96,7 +97,7 @@ python $E import -i <ini>                            # 用导出好的 ini 恢�
 | `$DSH_HOME/profiles/*/cordis.patch.yml` | `process.env.X`、`${X}`、`apiKeyEnv` |
 | `$DSH_HOME/profiles/*/package.json` | `dsh` 段的 `*Env` 字段 |
 | `$DSH_HOME/*.json` / `*.yaml` | 插件配置里的同类引用 |
-| `--from-archive <zip>` | 包内 `manifest.json` 的 `envVarsReferenced` + 包内上述文件 |
+| `--from-archive <7z 配置包>` | 包内 `manifest.json` 的 `envVarsReferenced` + 包内上述文件（旧版 zip 包同样可读） |
 | `--whitelist A B` | 手工补充；默认白名单含 `DSH_HOME` |
 
 ## ini 格式（标准 configparser，`[dsh]` 段）
@@ -119,3 +120,4 @@ MOONSHOT_API_KEY = sk-xxxx
 | 忘了某个 key | settings.yaml 未引用它 | `export` 时加 `-w` 补充 |
 | 导入后 dsh 仍报缺 key | 变量名对不上 | `check -i <ini>` 看「不一致/缺失」，再用 `--only` 逐个修 |
 | 只想确认配没配齐 | —— | `python $E check`（不需要 ini） |
+| `--from-archive` 报「找不到 7z」 | config-sync 的配置包已是 7z 格式，读它需要本机有 7z | 装 7-Zip / `p7zip`，或用 `DSH_SYNC_7Z=<7z 全路径>` 指定；也可先用 `7z x` 手工解包后指向解出的目录（本脚本不直接支持目录，此时改用 `--home <解出的 dsh-home>`） |

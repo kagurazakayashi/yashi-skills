@@ -1,0 +1,68 @@
+name: Build skill index
+
+# Renders every generated index file from SKILLS.json.
+#
+# The database is the only file an agent maintains by hand; everything derived
+# from it -- SKILLS.md (English, AI-facing), SKILLS.html and README.md
+# (Simplified Chinese, human-facing) -- is rebuilt here. The script notices this
+# workflow and then only updates the database when it runs locally, so the two
+# sides never fight over the same files.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - SKILLS.json
+      - README.md
+      - SKILLS.md
+      - SKILLS.html
+      - skills/**
+      - .github/workflows/skills-index.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: skills-index
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Render SKILLS.md and SKILLS.html from the database
+        run: |
+          python skills/yashi-build-skills-index/scripts/build_skills_index.py \
+            --render-only \
+            --skills-dir skills \
+            --db SKILLS.json \
+            --output SKILLS.md \
+            --html SKILLS.html
+
+      - name: Render README.md from the database
+        run: |
+          python skills/yashi-build-skills-index/scripts/build_skills_index.py \
+            --render-only \
+            --skills-dir skills \
+            --db SKILLS.json \
+            --output README.md \
+            --no-html
+
+      - name: Commit the regenerated files
+        run: |
+          if git diff --quiet -- SKILLS.md SKILLS.html README.md; then
+            echo "index already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SKILLS.md SKILLS.html README.md
+          git commit -m "重建 skill 索引（由 SKILLS.json 自动生成）"
+          git push

@@ -1,18 +1,22 @@
-# 可用 Skill 索引 · .agents
+# 可用 Skill 索引 · yashi-skills
 
-共 17 个 skill
+共 21 个 skill
 
 ## 目录
 
-**个人工具**（17 个）
+**个人工具**（21 个）
 
+- [yashi-agents-md-export](#yashi-agents-md-export)
 - [yashi-build-skills-index](#yashi-build-skills-index)
 - [yashi-dida-cli](#yashi-dida-cli)
 - [yashi-dsh-config-sync](#yashi-dsh-config-sync)
 - [yashi-dsh-desktop-migrate](#yashi-dsh-desktop-migrate)
 - [yashi-dsh-env-sync](#yashi-dsh-env-sync)
+- [yashi-dsh-ssh-otp-patch](#yashi-dsh-ssh-otp-patch)
 - [yashi-dsh-update](#yashi-dsh-update)
 - [yashi-encoding-convert](#yashi-encoding-convert)
+- [yashi-evernight-capture](#yashi-evernight-capture)
+- [yashi-flutter-debug](#yashi-flutter-debug)
 - [yashi-github-read-contributions](#yashi-github-read-contributions)
 - [yashi-global-skills-sync](#yashi-global-skills-sync)
 - [yashi-mcp-proxy-injection](#yashi-mcp-proxy-injection)
@@ -21,25 +25,48 @@
 - [yashi-opencc-convert](#yashi-opencc-convert)
 - [yashi-opencode-config-portability](#yashi-opencode-config-portability)
 - [yashi-rtk-token-saver](#yashi-rtk-token-saver)
+- [yashi-windows-bsod-analysis](#yashi-windows-bsod-analysis)
 - [yashi-windows-check-update](#yashi-windows-check-update)
-- [yashi-flutter-android-device-debug](#yashi-flutter-android-device-debug)
 
 ---
 
-**个人工具**（17 个）
+**个人工具**（21 个）
+
+## yashi-agents-md-export
+
+用途:
+从规则数据库 ~/.agents/AGENTS.json 导出 AGENTS.md：按平台（windows/linux/macos/all）与语言（en/zh-CN）筛选条目，生成对应语言的 Markdown 列表。脚本自动侦测操作系统（未指定时按当前系统导出英文版），并逐条校验规则里声明的命令是否真的存在，剔除含无效命令的条目并报告命令级可用性；同时说明数据库的字段格式与维护方式，供 AI 增删改规则。
+
+适用场景:
+
+- 导出 AGENTS.md / 重新生成全局规则
+- 往 AGENTS.json 加一条规则 / 重新规整 AGENTS 规则
+- 按平台生成 AGENTS（只要 windows 或 linux 的规则）
+- 查这套规则里哪些命令没装
+
+位置:
+`skills/yashi-agents-md-export/` · [打开目录](skills/yashi-agents-md-export/)
+
+提示词示例:
+
+```text
+重新生成全局 AGENTS.md
+往规则数据库里加一条新规则
+只要 windows 平台的规则，导出成 AGENTS.md
+这套规则里哪些命令在我机器上没装
+```
 
 ## yashi-build-skills-index
 
 用途:
-生成或更新 skill 索引，产出 AI 用的 `SKILLS.md`、人类用的 `SKILLS.html` 与给 skill 仓库当首页的 `README.md`，并校验 name/description 缺失、目录名不一致与重名等问题。
+生成或更新 skill 索引：以 JSON 数据库为唯一内容源，渲染出面向 AI 的 SKILLS.md 与面向人类的 SKILLS.html / README.md。
 
 适用场景:
 
 - 创建或重建 skill 索引
-- 更新 SKILLS.md / SKILLS.html
-- 新增、删除或同步 skill 后重建索引
-- 给 skill 仓库生成 README.md
-- 检查索引是否与 skills 目录一致
+- 新增、删除或同步 skill 后更新索引
+- 给 skill 仓库生成首页 README.md
+- 检查索引是否与数据库、skills 目录一致
 
 位置:
 `skills/yashi-build-skills-index/` · [打开目录](skills/yashi-build-skills-index/)
@@ -54,15 +81,15 @@
 ## yashi-dida-cli
 
 用途:
-用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日，涵盖全局安装/更新、登录与常用增删改命令。
+用 `dida`（@suibiji/dida-cli）在终端管理滴答清单 dida365 的任务、清单、标签、习惯、专注与倒数日—— 涵盖 npm 全局安装/更新（代理 + strict-ssl + allow-scripts 的正确姿势）、OAuth 或 API 口令登录、以及查询与增删改的常用命令。
 
 适用场景:
 
-- 列出我的清单 / 任务 / 标签 / 习惯 / 专注 / 倒数日
-- 新建或修改滴答任务、给任务打标签
-- 更新或安装 dida-cli（代理 + strict-ssl + allow-scripts）
-- dida 没登录，需要走 dida auth login
-- 按关键词搜索滴答任务
+- 更新 dida-cli
+- 列出我的清单/任务/标签/习惯/专注/倒数日
+- 建一个滴答任务
+- Dida 没登录怎么办
+- Dida auth login
 
 位置:
 `skills/yashi-dida-cli/` · [打开目录](skills/yashi-dida-cli/)
@@ -77,15 +104,17 @@
 ## yashi-dsh-config-sync
 
 用途:
-一句话导出或导入 DeepSeek Harness（dsh）的完整配置，并支持只处理指定 profile、以及在 profile 之间直接同步插件与配置。
+一句话导出/导入 DeepSeek Harness（dsh）的配置（7z 压缩包，压缩级别 -mx0-9 与 AES-256 密码可选、默认 -mhe=on 连文件名一起加密；有图形会话且装了 7-Zip 时用 7zG 弹进度窗，否则回退控制台 7z；导入兼容旧版 zip 并能自动或按参数处理加密包）。核心是「先让用户选范围」：内置 24 个可选范围类别（插件配置文件、npm 插件包本体、skills、profiles、会话列表、会话正文、主题/皮肤包、宠物包、表情包、凭证与 KEY、环境变量清单、锁文件、TUI 状态、本地插件、历史备份、其它杂项等），可用 `pick` 弹出原生 GUI 勾选框，也可在 GUI 不可用时用 `pick --list` 拿到结构化目录后自行提问、再把结果用 `--scope` 传回；另支持 `--profiles` 限定 profile 与 `sync --from web --to desktop` 在 profile 间直接同步插件与配置（依赖并集、bundle 注册、cordis.patch.yml 按 id 差集合并，Electron 独占的 profile 如实跳过启动测试）。导入时自动补全依赖、修正 pnpm-workspace.yaml 的 allowBuilds 半成品、检查 pnpm.cmd 包装器指向、实测 dsh web 启停并给出排障建议，可联动 yashi-dsh-update / yashi-dsh-env-sync / yashi-dsh-desktop-migrate。默认只带配置（不含素材包、运行数据、凭证），要什么由用户显式勾选。
 
 适用场景:
 
-- 导出或备份 dsh 配置
-- 导入或恢复 dsh 配置
-- 迁移 dsh 到新机器
-- 只处理指定 profile（--profiles web,desktop）
-- 把一个 profile 的插件与配置同步到另一个 profile（sync --from web --to desktop）
+- 导出 dsh 配置 / 备份 dsh 配置
+- 迁移 dsh 到新机器 / 导入、恢复 dsh 配置
+- 弹个框让我选导出范围（插件配置、skills、主题、宠物、表情包、会话列表）
+- 只导出插件配置，别把主题、宠物、表情包一起打进去
+- 只导出会话列表（不要聊天正文），或要连凭证一起导出
+- 导出要加密 / 带密码（7z + AES-256）
+- 只导出一个 profile / 把 web 的插件和配置同步到桌面版
 
 位置:
 `skills/yashi-dsh-config-sync/` · [打开目录](skills/yashi-dsh-config-sync/)
@@ -101,14 +130,15 @@
 ## yashi-dsh-desktop-migrate
 
 用途:
-把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让两者的插件集与设置保持一致。
+把某个 dsh profile（通常是 web）的插件与配置整体迁移到桌面版 profile（desktop），让桌面版拥有与 web 版一致的插件集与设置——包括依赖清单（package.json 的 dependencies）、bundle 注册（dsh.profile.bundles）、pnpm 配置（pnpm-workspace.yaml / .npmrc / pnpm.cmd / pnpm-lock.yaml）与设置条目（cordis.patch.yml 的合并）。
 
 适用场景:
 
 - 把 dsh web 的插件和配置导入桌面版
-- 桌面版缺少宠物、皮肤、侧边栏、通知器这些 web 插件
-- 让 desktop profile 与 web profile 的插件集一致
+- 桌面版没有宠物/皮肤/侧边栏/通知器这些 web 插件
+- 让 desktop profile 和 web profile 的插件集一致
 - 桌面版插件迁移
+- Dsh 桌面版功能比 web 版少
 
 位置:
 `skills/yashi-dsh-desktop-migrate/` · [打开目录](skills/yashi-dsh-desktop-migrate/)
@@ -123,15 +153,16 @@
 ## yashi-dsh-env-sync
 
 用途:
-一句话导出或导入 DeepSeek Harness（dsh）的环境变量（API key 等），自动扫描配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用。
+一句话导出/导入 DeepSeek Harness（dsh）的环境变量（API key 等）——自动扫描 $DSH_HOME/settings.yaml、各 profile 的 cordis.patch.yml 与 package.json、以及插件配置里所有 apiKeyEnv / process.env.X / ${VAR} 引用，导出到 ini 文件备份/迁移；或从 ini 导入恢复（Windows setx 写入用户环境，新终端生效；也可输出 shell / powershell export 语句）。支持直接用 config-sync 导出的 7z 配置包（兼容旧版 zip）作为变量名来源（--from-archive，读 7z 需本机有 7z，找不到时告警并降级为只扫本机 $DSH_HOME），与 yashi-dsh-config-sync 联动：配置导出不含环境变量，密钥靠本脚本恢复。
 
 适用场景:
 
-- 导出或备份 dsh 环境变量与 API key
-- 从 ini 导入环境变量恢复（Windows setx 写入用户环境，新终端生效）
-- 迁移 dsh 到新机器后恢复 key
+- 导出 dsh 环境变量
+- 备份 API key
+- 迁移 dsh 到新机器需要恢复 key
+- 从 ini 导入环境变量
+- Dsh 换机器后 API key 恢复
 - 检查 dsh 的 key 是否配齐
-- 需要输出 shell / powershell 的 export 语句
 
 位置:
 `skills/yashi-dsh-env-sync/` · [打开目录](skills/yashi-dsh-env-sync/)
@@ -143,17 +174,42 @@
 检查一下 dsh 的 API key 有没有配齐
 ```
 
-## yashi-dsh-update
+## yashi-dsh-ssh-otp-patch
 
 用途:
-一句话更新 DeepSeek Harness（dsh）全家桶：npm 全局包与 `$DSH_HOME/profiles` 下的所有 profile 插件，并实测 `dsh web` 能否正常启动。
+给 @linxin666/dsh-ssh 插件补上 keyboard-interactive 2FA 支持（TOTP / 短信验证码，典型场景是服务器启用了 libpam-google-authenticator）：把 onKeyboardInteractive 沿 exec 链透传进 connectClient，并给 ssh_exec 增加可选 otp 参数，让 dsh 的 agent 工具能连上要求二次验证的主机；首次验证成功后连接池复用，同一 alias 后续调用不再需要验证码。补丁幂等、带备份、可一键回滚；插件升级、重装或 dsh 更新覆盖 lib/ 之后重跑一次即可恢复。
 
 适用场景:
 
-- 更新 dsh 与全部 profile 插件
-- 插件依赖未安装、不兼容或被跳过（pnpm update/install + allowBuilds）
-- dsh 更新后启动失败、dsh web 起不来
-- pnpm install 报错（含 ERR_PNPM_UNEXPECTED_STORE）或需要处理 git 依赖
+- Dsh ssh 连不上 2FA 主机
+- Ssh_exec 报 Authentication failed (keyboard-interactive): Verification code
+- 插件升级后 otp 参数消失
+- 重新打 2FA 补丁
+- Ssh 主机要谷歌验证码
+
+位置:
+`skills/yashi-dsh-ssh-otp-patch/` · [打开目录](skills/yashi-dsh-ssh-otp-patch/)
+
+提示词示例:
+
+```text
+dsh 的 ssh 连不上要谷歌验证码的主机，帮我打上 2FA 补丁
+ssh_exec 报 Authentication failed (keyboard-interactive): Verification code，怎么解决
+插件升级后 otp 参数又没了，重新打一次补丁
+```
+
+## yashi-dsh-update
+
+用途:
+一句话更新 DeepSeek Harness（dsh）全家桶——npm 全局包（@deepseek-ai/dsh、@deepseek-harness-tui/dsh-tui）及 $DSH_HOME/profiles 下的所有 profile 插件，安装/补全缺失依赖（pnpm update/install + allowBuilds/approve-builds），先检查 profile .npmrc 的 store-dir（dsh 更新功能历史上会写坏，报 ERR_PNPM_UNEXPECTED_STORE），处理 git 依赖与不兼容/被跳过插件，实测 `dsh web --port 3088` 启动（带 token 返回 200/303、无 token 401 校验）并整棵进程树退出、清理临时文件，最后输出当前全局包与插件信息表格。
+
+适用场景:
+
+- 更新 dsh
+- 升级 DeepSeek Harness
+- Dsh 更新后启动失败
+- Dsh web 起不来
+- 插件依赖未安装
 
 位置:
 `skills/yashi-dsh-update/` · [打开目录](skills/yashi-dsh-update/)
@@ -168,13 +224,12 @@ dsh 更新后起不来了，帮我排查
 ## yashi-encoding-convert
 
 用途:
-文本编码转换：读取任意编码的文件（ANSI/GBK、Big5、Shift-JIS、UTF-16 等），输出为 UTF-8（默认）或指定编码，支持自动检测、管道输入输出与就地改写。
+文本编码转换工具：读取任意编码的文件（ANSI/GBK、Big5、Shift-JIS、UTF-16 等），输出为 UTF-8（默认）或指定编码。
 
 适用场景:
 
-- AI 读到 ANSI/GBK 等非 UTF-8 文件，需要先转码
-- 需要以指定编码（如 GBK）保存或读取文件
-- 用户说「编码转换」「ANSI 文件」「GBK 编码」「转成 UTF-8」时
+- 适用于 AI 读取 ANSI/GBK 等非 UTF-8 文件时先转码，或用户需要以特定编码（如 GBK）保存/读取文件时。
+- 当用户说"编码转换""ANSI 文件""GBK 编码""转成 UTF-8""读取乱码文件" "以 GBK 保存"或需要处理非 UTF-8 文本文件时，调用本技能。
 
 位置:
 `skills/yashi-encoding-convert/` · [打开目录](skills/yashi-encoding-convert/)
@@ -186,15 +241,65 @@ dsh 更新后起不来了，帮我排查
 把这段文本以 GBK 保存
 ```
 
-## yashi-github-read-contributions
+## yashi-evernight-capture
 
 用途:
-讀取 GitHub 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數。
+在 Windows 上用 ECAPTURE.EXE（EvernightCapture）按条件选中目标窗口或整个显示器并截图；成功与失败都以 JSON 返回，带稳定的退出码与诊断码，适合程序化调用。只读查询（--capabilities / --diagnostics / --screens / --list / --inspect / --show-config / --dry-run）优先于靠截图试错；任何会读取桌面像素的路径（整屏、bitblt、duplication、DWM 的屏幕回退）都必须由用户本人确认，不得代为应答。
 
 适用场景:
 
-- 讀取任意 GitHub 使用者的貢獻熱力圖
-- 計算連續貢獻天數、找出範圍內最早無貢獻日期
+- 截图 / 截取某个指定窗口、对话框或整个显示器
+- 查询哪些窗口匹配条件（--list / --inspect 的结构化 JSON）
+- 用稳定标识指定显示器（--screens），或一次截取多个窗口
+- 解读 ECAPTURE 的 JSON 结果、退出码与诊断码
+- 只想做只读探测（--capabilities / --dry-run），不实际截图
+
+位置:
+`skills/yashi-evernight-capture/` · [打开目录](skills/yashi-evernight-capture/)
+
+提示词示例:
+
+```text
+截一下记事本这个窗口的图，存到 D:\shots\note.png
+看看现在有哪些窗口，以 JSON 列出来
+这台机器有几块屏，用稳定标识告诉我显示器名字
+抓一下这个对话框，用 wgc 方式，不用整屏截图
+```
+
+## yashi-flutter-debug
+
+用途:
+在任意 Flutter 项目里完成调试并观测运行状态：建立 flutter run 会话，读取 Widget Tree、抓应用日志，并只截取目标应用窗口（Android 真机，以及 Windows / macOS / Linux 桌面）。
+
+适用场景:
+
+- Flutter 调试（Android 真机 / 桌面 / Web）
+- Android 真机调试
+- 查看 widget 树 / Widget Tree
+- 抓应用日志或控制台输出
+- 调试截图与热重载观测
+- 排查真机点击无法注入、无可用目标等环境问题
+
+位置:
+`skills/yashi-flutter-debug/` · [打开目录](skills/yashi-flutter-debug/)
+
+提示词示例:
+
+```text
+在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree
+真机启动调试并截图，我点一下按钮看能不能拿到日志输出
+换 Windows 桌面版跑起来调试，抓 widget 树、日志和窗口截图
+帮我看看这台安卓手机为什么模拟不了点击
+```
+
+## yashi-github-read-contributions
+
+用途:
+讀取 GitHub 使用者的 contributions 熱力圖（貢獻日曆），分析活躍度，找出最早無貢獻日期、計算連續貢獻天數等。
+
+适用场景:
+
+- 適用於任意 GitHub 使用者。
 
 位置:
 `skills/yashi-github-read-contributions/` · [打开目录](skills/yashi-github-read-contributions/)
@@ -209,14 +314,15 @@ dsh 更新后起不来了，帮我排查
 ## yashi-global-skills-sync
 
 用途:
-一句话同步用户全局 skill 目录 `~/.agents/skills/`：从六个固定 GitHub 仓库按前缀拉取、更新或删除 skill（dart / flutter / golang / mindmap / ui-ux-pro-max / yashi）。
+一句话同步用户全局 skill 目录 `~/.agents/skills/`——从六个固定 GitHub 仓库按前缀拉取/更新/删除 skill：dart-lang/skills（dart-*）、flutter/agent-plugins（flutter-*，且其中 dart-* 以此仓库为准覆盖 dart-lang）、samber/cc-skills-golang（golang-*，跳过 samber 自家 7 个库 golang-samber-*，只保留通用核心）、galiacheng/mindmap-skills（mindmap*）、nextlevelbuilder/ui-ux-pro-max-skill（ui-ux-pro-max，按官方 npm 全局装 ui-ux-pro-max-cli 后用 uipro init --ai universal --global）、kagurazakayashi/yashi-skills 的 skills/ 目录（yashi-*；该源原先取 CodeNotebook 的 .agents/skills，现已成为独立仓库，本 skill 自身也由它分发）。
 
 适用场景:
 
-- 同步全局 skill、更新 skill
+- 同步全局 skill
+- 更新 skill
 - 检查 skill 有没有新版本
-- 拉取 dart / flutter / golang / mindmap / ui-ux / yashi skill
-- skill 增删改后安装随之而来的 CLI 依赖
+- 拉取 dart/flutter/golang/mindmap/ui-ux/yashi skill
+- Skill 增删改
 
 位置:
 `skills/yashi-global-skills-sync/` · [打开目录](skills/yashi-global-skills-sync/)
@@ -231,14 +337,13 @@ dsh 更新后起不来了，帮我排查
 ## yashi-mcp-proxy-injection
 
 用途:
-为读取网址或走非中国搜索引擎的本地 MCP 服务器注入代理，解决其联网失败（fetch failed、chromium ERR_TIMED_OUT / ERR_CONNECTION_TIMED_OUT）。
+为任意读取网址或通过非中国搜索引擎（Google、Bing 国际版等）搜索的本地 MCP 服务器注入代理，解决其联网失败(fetch failed、chromium ERR_TIMED_OUT / ERR_CONNECTION_TIMED_OUT、无法访问被墙的 API 或搜索引擎)。
 
 适用场景:
 
-- MCP 服务器联网失败、chromium 连不上被墙的站点或 API
-- MCP host 的 env 代理设置无效，需要排查
-- npm update -g 覆盖补丁后需要重新注入代理
-- 安装这类 MCP 服务器前，先确认是否打补丁、代理到哪个地址
+- 通用方法论：适用于任意此类 MCP 服务器、任意 MCP host（opencode / Claude Code / Claude Desktop / Cline 等）与任意本地代理服务器（HTTP CONNECT 或 SOCKS5），代理地址通过环境变量可配置，不绑定特定插件。
+- 安装此类 MCP 服务器时，先询问用户是否需要代理补丁、以及代理到哪个地址，确认后再动手。
+- 适用于安装、修复或排查无法联网的 MCP 服务器、MCP host 的 env 代理设置无效、以及 npm update -g 覆盖补丁后需要重新注入的场景。
 
 位置:
 `skills/yashi-mcp-proxy-injection/` · [打开目录](skills/yashi-mcp-proxy-injection/)
@@ -253,14 +358,12 @@ chromium 连不上 Google，给 MCP 配个代理
 ## yashi-md-table-format
 
 用途:
-格式化 Markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列原有的左/右/居中对齐方式。
+格式化 Markdown 表格，按显示宽度对齐（全角字符占 2 格、半角字符占 1 格），保留每列左/右/居中对齐方式。
 
 适用场景:
 
-- 把 .md 文件里的表格列宽对齐
-- 整理代码注释里的表格文本
-- 中英文混排的表格需要工整对齐
-- 需要「表格对齐」「让表格列宽一致」时（禁止手工拼空格对齐）
+- 适用于 .md 文件中的表格、代码文件注释中的表格文本、以及任何中英文混排需要工整对齐的表格。
+- 当需要"表格对齐""整理表格""格式化表格" "表格工整""让表格列宽一致"，或准备手工拼空格对齐表格时，调用本技能；禁止手工拼空格对齐表格。
 
 位置:
 `skills/yashi-md-table-format/` · [打开目录](skills/yashi-md-table-format/)
@@ -275,14 +378,12 @@ chromium 连不上 Google，给 MCP 配个代理
 ## yashi-node-tls-trust-fix
 
 用途:
-诊断并修复杀毒软件、企业代理对 HTTPS 做中间人（MITM）替换证书后，Node 类工具 TLS 校验失败的问题。
+诊断并修复杀毒软件、企业代理等对 HTTPS 做中间人（MITM）替换证书后，Node 类工具 TLS 校验失败的问题：报 SELF_SIGNED_CERT_IN_CHAIN、UNABLE_TO_VERIFY_LEAF_SIGNATURE、 fetch failed、模型请求频繁重试等。
 
 适用场景:
 
-- 报 SELF_SIGNED_CERT_IN_CHAIN / UNABLE_TO_VERIFY_LEAF_SIGNATURE / fetch failed
-- 怀疑杀毒软件或企业代理拦截 HTTPS、做加密连接扫描
-- 模型请求频繁重试
-- 反查某个域名为什么偶发失败
+- 某个域名为什么偶发失败
+- 当遇到"证书错误""证书校验失败""self-signed certificate in certificate chain" "HTTPS 被杀毒软件拦截""加密连接扫描""模型经常重试""fetch failed"时调用本技能。
 
 位置:
 `skills/yashi-node-tls-trust-fix/` · [打开目录](skills/yashi-node-tls-trust-fix/)
@@ -298,13 +399,12 @@ fetch failed，怀疑杀毒软件拦截了 HTTPS
 ## yashi-opencc-convert
 
 用途:
-用 OpenCC 做中文简繁转换，支持简体↔繁体、台湾/香港繁体变体与日本新字体，默认自动检测转换方向。
+使用 OpenCC 进行中文简繁转换，支持简体↔繁体、台湾/香港繁体变体、日本新字体。
 
 适用场景:
 
-- 简体转繁体、繁体转简体，或转成台湾/香港繁体
-- 统一 .md 文件、代码注释、对话内容的简繁风格
-- 用户说「简繁转换」「转成繁体/简体」时
+- 适用于 .md 文件、代码注释、对话内容中的简繁转换需求。
+- 当用户说"简繁转换" "简体转繁体""繁体转简体""转成台湾繁体""转成香港繁体""把这段转成繁体/简体" 或需要统一文本简繁风格时，调用本技能。
 
 位置:
 `skills/yashi-opencc-convert/` · [打开目录](skills/yashi-opencc-convert/)
@@ -319,14 +419,11 @@ fetch failed，怀疑杀毒软件拦截了 HTTPS
 ## yashi-opencode-config-portability
 
 用途:
-一句话导入或导出 opencode 的全部设置（备份 / 还原 / 迁移 / 同步），打包 `~/.config/opencode` 与 `~/.agents` 并用 7z 压缩。
+一句话导入或导出 opencode 的全部设置（备份/还原/迁移/同步 opencode 配置）。
 
 适用场景:
 
-- 导出或备份 opencode 设置
-- 导入或还原 opencode 配置
-- 迁移 opencode 到新机器
-- 用户提到 opencode_config.7z 时
+- 当用户说 导出/备份/导入/还原/迁移/同步 opencode 设置 或 提到 opencode_config.7z。
 
 位置:
 `skills/yashi-opencode-config-portability/` · [打开目录](skills/yashi-opencode-config-portability/)
@@ -341,13 +438,12 @@ fetch failed，怀疑杀毒软件拦截了 HTTPS
 ## yashi-rtk-token-saver
 
 用途:
-在终端执行开发命令时优先改用 rtk 包装，压缩输出、节省 60-90% 的 LLM token。
+在终端执行开发命令时优先改用 rtk 包装，以压缩输出、节省 60-90% 的 LLM token。
 
 适用场景:
 
-- 运行测试、构建、lint，或查看 git 状态/差异/日志时优先走 rtk
-- 覆盖 git / cargo / go / npm / pnpm / python(pytest,ruff,mypy) / docker 等命令
-- 覆盖 ls / cat / head / tail / grep / rg / find / wc / diff / json 等文件操作
+- 适用于 git / gh / glab / gt / cargo / go / golangci-lint / npm / npx / pnpm / bun / deno / python(pytest,ruff,mypy,pip,uv) / jest / vitest / playwright / ctest / tsc / eslint / prettier / next / prisma / dotnet / mvn / sbt / gradlew / docker / kubectl / oc / aws / psql / php(phpunit,phpstan,pest,pint 等) / ruby(rspec,rubocop,rake) 等命令，以及 ls / tree / cat / head / tail / grep / rg / find / wc / diff / json / log / env / deps 等文件操作。
+- 当需要运行测试、构建、lint、查看 git 状态/差异/日志、列目录、搜索文件内容、查看日志或 JSON 时使用。
 
 位置:
 `skills/yashi-rtk-token-saver/` · [打开目录](skills/yashi-rtk-token-saver/)
@@ -359,16 +455,41 @@ fetch failed，怀疑杀毒软件拦截了 HTTPS
 看下 git 状态和最近的提交
 ```
 
-## yashi-windows-check-update
+## yashi-windows-bsod-analysis
 
 用途:
-检查 Windows 11/10/Server 的最新功能更新，从 Microsoft 发布健康页面与 Update Catalog 提取 KB 信息及下载链接。
+分析 Windows 蓝屏（BSOD）内核转储：识别完整/内核/活动/小内存（triage）转储，从 dump 头直接读出 BugCheck 码与参数，用 WinDbg/cdb 加载匹配符号还原真实异常栈与责任模块，并区分「蓝屏路径」与「故障路径」，最后给出可疑驱动排序与下一步取证方案。
 
 适用场景:
 
-- 查 Windows 11/10/Server 的最新功能更新
-- 需要对应的 KB 号与 Update Catalog 下载链接
-- 按 x64 / ARM64 架构区分
+- 蓝屏 / BSOD / 蓝屏重启
+- Minidump、MEMORY.DMP、完整/内核/活动/小内存转储
+- BugCheck 0x1E / 0x50 / 0xD1 / 0x139
+- WinDbg 报 WRONG_SYMBOLS、KiFatalExceptionHandler
+- 想知道是哪个驱动导致蓝屏，或缺少调试工具时该去哪下
+
+位置:
+`skills/yashi-windows-bsod-analysis/` · [打开目录](skills/yashi-windows-bsod-analysis/)
+
+提示词示例:
+
+```text
+帮我看看这个蓝屏 dump：C:\Windows\Minidump\102826-15593-01.dmp
+电脑今天蓝屏了，帮我分析 MEMORY.DMP
+BugCheck 0x1E 是什么意思，严重吗
+0xFFFFF800BDA19BDF 这个地址属于哪个驱动
+!analyze 报 WRONG_SYMBOLS 怎么处理
+连续蓝屏两次，把这两个 dump 都过一遍
+```
+
+## yashi-windows-check-update
+
+用途:
+检查 Windows 11/10/Server 的最新功能更新，从 Microsoft 发布健康页面和 Update Catalog 提取 KB 信息及下载链接。
+
+适用场景:
+
+- 适用于 x64/ARM64 架构。
 
 位置:
 `skills/yashi-windows-check-update/` · [打开目录](skills/yashi-windows-check-update/)
@@ -378,26 +499,4 @@ fetch failed，怀疑杀毒软件拦截了 HTTPS
 ```text
 查一下 Windows 11 最新的功能更新
 有没有新的累积更新 KB 和下载链接
-```
-
-## yashi-flutter-android-device-debug
-
-用途:
-Flutter 的 Android 真机调试工作流：建立稳定的 flutter run 调试会话，并获取 Widget Tree、应用日志输出与设备截图。
-
-适用场景:
-
-- 在 Android 真机上启动 Flutter 调试
-- 查看运行中应用的 Widget Tree
-- 抓取真机上的应用日志 / debugPrint 输出
-- 真机截图，以及“先操作再观测”的闭环验证
-
-位置:
-`skills/yashi-flutter-android-device-debug/` · [打开目录](skills/yashi-flutter-android-device-debug/)
-
-提示词示例:
-
-```text
-在这个 Flutter 项目上做 Android 真机调试，抓一下 Widget Tree
-真机启动调试并截图，我点一下按钮看能不能拿到日志输出
 ```

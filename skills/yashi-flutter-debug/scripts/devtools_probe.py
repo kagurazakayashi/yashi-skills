@@ -6,7 +6,10 @@ All channels go over the same VM Service WebSocket that DevTools uses:
   tree  [--depth N]      -> Widget Tree via ext.flutter.debugDumpApp
   logs  --seconds N      -> app stdout/stderr via streamListen(Stdout/Stderr/Logging)
   isolate                -> isolate id + debug name + pause state
-  rpc   <method> [json]  -> call any VM Service RPC (escape hatch)
+  rpc   <method> [json] [--isolate]
+                         -> call any VM Service RPC (escape hatch).
+                            isolateId is attached automatically ONLY when the
+                            method needs it (see cmd_rpc); --isolate forces it.
 
 Usage:
   python devtools_probe.py --ws ws://127.0.0.1:PORT/TOKEN=/ws tree
@@ -99,10 +102,35 @@ def cmd_isolate(vm, args):
 
 
 def cmd_rpc(vm, args):
+    """Call any VM Service RPC.
+
+    isolateId must NOT be attached unconditionally: VM-level RPCs such as
+    getVM / getVersion take no isolateId and reject an unexpected one with
+    -32602 Invalid params. So the caller's params are sent as-is first, and an
+    isolateId is attached only when the service reports it is required.
+
+    An explicit "isolateId" inside the JSON always wins, and --isolate forces
+    the injection without the probe round-trip.
+    """
     params = json.loads(args.json) if args.json else {}
-    iso = params.pop("isolateId", None) or vm.isolate_id()
-    params["isolateId"] = iso
-    print(json.dumps(vm.call(args.method, params), indent=2, ensure_ascii=False)[:4000])
+    explicit = params.pop("isolateId", None)
+    if explicit or args.isolate:
+        params["isolateId"] = explicit or vm.isolate_id()
+        _dump(vm.call(args.method, params))
+        return
+    try:
+        result = vm.call(args.method, params)
+    except RuntimeError as exc:
+        # isolate-scoped RPC called without isolateId -> retry once with it.
+        if "isolateId" not in str(exc):
+            raise
+        params["isolateId"] = vm.isolate_id()
+        result = vm.call(args.method, params)
+    _dump(result)
+
+
+def _dump(obj, limit=4000):
+    print(json.dumps(obj, indent=2, ensure_ascii=False)[:limit])
 
 
 def main():
@@ -120,6 +148,8 @@ def main():
 
     p = sub.add_parser("rpc")
     p.add_argument("method"); p.add_argument("json", nargs="?", default="")
+    p.add_argument("--isolate", action="store_true",
+                   help="force-attach isolateId (otherwise auto-probed)")
     p.set_defaults(func=cmd_rpc)
 
     args = ap.parse_args()
